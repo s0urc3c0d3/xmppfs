@@ -25,6 +25,8 @@ int main(int argc, char *argv[])
 {
 	char *user_jid="testet@example.jabber.com/debian";
 	char *user_pass="tester";
+	char *host="example.jabber.com";
+	int port = 5222;
 
 	xmpp_initialize();
 
@@ -39,6 +41,15 @@ int main(int argc, char *argv[])
 
 	xmpp_conn_set_jid(conn,user_jid);
 	xmpp_conn_set_pass(conn,user_pass);
+
+	xmpp_connect_client(conn, host, port, xmpp_connection_handler, ctx);
+
+	xmpp_run(ctx);
+
+	xmpp_conn_release(conn);
+	xmpp_ctx_release(ctx);
+
+	xmpp_shutdown();
 
 	return 0;
 }
