@@ -1,3 +1,5 @@
+//gcc -o xmppfs xmppfs.c -D_FILE_OFFSET_BITS=64 -L/usr/local/lib/ -lstrophe -lexpat -lssl  -lcrypto -lz  -lresolv -Wall `pkg-config fuse --cflags --libs`
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fuse/fuse.h>
