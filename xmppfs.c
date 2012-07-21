@@ -1,5 +1,7 @@
 //gcc -o xmppfs xmppfs.c -D_FILE_OFFSET_BITS=64 -L/usr/local/lib/ -lstrophe -lexpat -lssl  -lcrypto -lz  -lresolv -Wall `pkg-config fuse --cflags --libs`
 
+#define FUSE_USE_VERSION 26
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fuse/fuse.h>
@@ -10,7 +12,7 @@
 
 struct fuse_args_xmpp {
 	int argc;
-	char *argv[];
+	char argv[];
 };
 
 static int xmppfs_getattr(const char *filename, struct stat *fstat)
@@ -23,17 +25,18 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 //static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler, off_t 		offset, struct fuse_file_info *finfo);
 
 static struct fuse_operations xmppfs = {
-	.getattr = xmppfs_getattr,
+	.getattr = xmppfs_getattr
 	//.readdir = xmppfs_readdir
 };
 
 
-static void fuse_thread(void *args)
+void *fuse_pthread(void *args)
 {
 	struct fuse_args_xmpp *m = (struct fuse_args_xmpp *)args;
 	int t = m->argc;
-	t = fuse_main(t, m->argv, &xmppfs, NULL);
-return fuse_main(argc, argv, &hello_oper, NULL)
+	char *argv[4];
+	fprintf(stderr,"dupa");
+	//t = fuse_main(t, argv, &xmppfs, NULL);
 }
 
 //  XMPP_part
@@ -57,19 +60,18 @@ struct _xmpp_contact_list xmpp_contact_list = {
 	.next=NULL
 };
 
-static void *xmpp_communication(void *args)
+void *xmpp_communication(void *args)
 {
 	struct xmpp_thread_arg *arg = (struct xmpp_thread_arg *)args;
 	struct xmpp_ctx_t *ctx = arg->ctx;
 	struct xmpp_conn_t *conn = arg->conn;
 
-	return ;
 }
 
 int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	struct xmpp_stanza_t *query, *item;
-	char *type, *name,*jid;
+	xmpp_stanza_t *query, *item;
+	char *type, *name, *jid;
 
 	struct _xmpp_contact_list *tmp;
 	tmp=&xmpp_contact_list;
@@ -145,12 +147,13 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 int main(int argc, char *argv[])
 {
-	pthread fthread;
+	pthread_t fthread;
 	struct fuse_args_xmpp *args;
-	args = (struct fuse_args_xmpp *)malloc(sizeof(fuse_args));
+	args = (struct fuse_args_xmpp *)malloc(sizeof(struct fuse_args_xmpp));
 	args->argc=argc;
-	args->argv=argv;
-	pthread_create(&fthread,NULL,fuse_thread,args);
+	//args->argv=(char[] *) malloc(sizeof(argv));
+	memcpy(args->argv,argv,sizeof(argv));
+	pthread_create(&fthread,NULL,fuse_pthread,args);
 
 	char *user_jid="tester@example.jabber.com/debian";
 	char *user_pass="tester";
@@ -160,7 +163,7 @@ int main(int argc, char *argv[])
 	xmpp_initialize();
 
 	xmpp_log_t *log;
-	log = xmpp_get_default_logger(XMPP_LEVEL_DEBUG);
+	log = xmpp_get_default_logger(XMPP_LEVEL_ERROR);
 
 	xmpp_ctx_t *ctx;
 	ctx = xmpp_ctx_new(NULL, log);
@@ -180,5 +183,5 @@ int main(int argc, char *argv[])
 
 	xmpp_shutdown();
 
-	return 0;
+	return fuse_main(argc, argv, &xmppfs, NULL);
 }
