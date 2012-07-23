@@ -4,12 +4,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fuse.h>
+#include <fuse/fuse.h>
+#include <fuse/fuse_opt.h>
 #include <strophe.h>
 #include <pthread.h>
 #include <string.h>
-#include <errno.h>
-#include <fcntl.h>
 
 struct fuse_args_xmpp {
 	int argc;
@@ -34,9 +33,10 @@ static struct fuse_operations xmppfs = {
 void *fuse_pthread(void *args)
 {
 	struct fuse_args_xmpp *m = (struct fuse_args_xmpp *)args;
-	int t;
-	t = fuse_main(m->argc, m->argv, &xmppfs, NULL);
-//return fuse_main(argc, argv, &hello_oper, NULL)
+	int t = m->argc;
+	char *argv[4];
+	fprintf(stderr,"dupa");
+	//t = fuse_main(t, argv, &xmppfs, NULL);
 }
 
 //  XMPP_part
