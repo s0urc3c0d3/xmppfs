@@ -2,11 +2,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fuse/fuse.h>
-#include <fuse/fuse_opt.h>
+#include <fuse.h>
 #include <strophe.h>
 #include <pthread.h>
 #include <string.h>
+#include <errno.h>
+#include <fcntl.h>
 
 struct fuse_args_xmpp {
 	int argc;
@@ -31,9 +32,9 @@ static struct fuse_operations xmppfs = {
 static void fuse_thread(void *args)
 {
 	struct fuse_args_xmpp *m = (struct fuse_args_xmpp *)args;
-	int t = m->argc;
-	t = fuse_main(t, m->argv, &xmppfs, NULL);
-return fuse_main(argc, argv, &hello_oper, NULL)
+	int t;
+	t = fuse_main(m->argc, m->argv, &xmppfs, NULL);
+//return fuse_main(argc, argv, &hello_oper, NULL)
 }
 
 //  XMPP_part
@@ -145,7 +146,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 int main(int argc, char *argv[])
 {
-	pthread fthread;
+	pthread_t fthread;
 	struct fuse_args_xmpp *args;
 	args = (struct fuse_args_xmpp *)malloc(sizeof(fuse_args));
 	args->argc=argc;
