@@ -71,13 +71,13 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	
 
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
-	/*while (tmp->next !=NULL)
+	while (tmp->next->next !=NULL)
 	{
 		fprintf(stderr,"%s",tmp->jid);
 		filler(buf, tmp->jid, NULL, 0);
 		tmp=tmp->next;
 	}
-*/
+
 	return 0;
 }
 
