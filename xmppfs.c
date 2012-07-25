@@ -8,7 +8,21 @@
 #include <fuse/fuse_opt.h>
 #include <strophe.h>
 #include <pthread.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <string.h>
+
+struct _xmpp_contact_list {
+	char *jid;
+	char *name;
+	struct _xmpp_contact_list *next;
+};
+
+struct _xmpp_contact_list xmpp_contact_list = {
+	.jid=NULL,
+	.name=NULL,
+	.next=NULL
+};
 
 struct fuse_args_xmpp {
 	int argc;
@@ -17,16 +31,54 @@ struct fuse_args_xmpp {
 
 static int xmppfs_getattr(const char *filename, struct stat *fstat)
 {
-
+	int res = 0;
+	char *no_root_slash,*next_slash;
+	
+	
+	memset(fstat,0,sizeof(struct stat));
+	if (strcmp(filename,"/"))
+	{
+		fstat->st_nlink=2;
+		fstat->st_mode=S_IFDIR | 0755;
+		return res;
+	}
+	
+	no_root_slash=filename+1;
+	next_slash=strchr(no_root_slash,"/");
+		
+	//if (next_slash != NULL)
+	//	return -ENOENT;
+	
+	fstat->st_nlink=1;
+	fstat->st_mode=S_IFREG | 0700;
+		
 	return 0;
 
 }
 
-//static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler, off_t 		offset, struct fuse_file_info *finfo);
+static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *finfo)
+{
+	//if (strcmp(dirname,"/") !=0)
+	//	return -ENOENT;
+
+	filler(buf, ".", NULL, 0);
+	filler(buf, "..", NULL, 0);
+	
+
+	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+	while (tmp->next !=NULL)
+	{
+		fprintf(stderr,"%s",tmp->jid);
+		filler(buf, tmp->jid, NULL, 0);
+		tmp=tmp->next;
+	}
+
+	return 0;
+}
 
 static struct fuse_operations xmppfs = {
-	.getattr = xmppfs_getattr
-	//.readdir = xmppfs_readdir
+	.getattr = xmppfs_getattr,
+	.readdir = xmppfs_readdir
 };
 
 
@@ -48,17 +100,7 @@ struct xmpp_thread_arg  {
 	struct xmpp_ctx_t *ctx;
 };
 
-struct _xmpp_contact_list {
-	char *jid;
-	char *name;
-	struct xmpp_contact_list *next;
-};
 
-struct _xmpp_contact_list xmpp_contact_list = {
-	.jid=NULL,
-	.name=NULL,
-	.next=NULL
-};
 
 void *xmpp_communication(void *args)
 {
@@ -75,7 +117,6 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 
 	struct _xmpp_contact_list *tmp;
 	tmp=&xmpp_contact_list;
-	memcpy(tmp,"\0",sizeof(tmp));
 	
 	type = xmpp_stanza_get_type(stanza);
 	if (strcmp(type,"error") == 0)
@@ -85,17 +126,21 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 //		zaczynamy pobieranie rostera
 		for (item = xmpp_stanza_get_children(query); item;
 			item = xmpp_stanza_get_next(item)) {
-				tmp=tmp->next;
-				tmp = (struct _xmpp_contact_list *)malloc(sizeof(struct _xmpp_contact_list));
+				
+				tmp->next = (struct _xmpp_contact_list *)malloc(sizeof(struct _xmpp_contact_list));
 				jid = xmpp_stanza_get_attribute(item, "jid");
-				tmp->jid = (struct _xmpp_contact_list *)malloc(sizeof(jid));
-				memcpy(tmp->jid,jid,sizeof(jid));
+				tmp->jid = (char *)malloc(strlen(jid)+1);
+				memset(tmp->jid,0,strlen(jid)+1);
+				strncpy(tmp->jid,jid,strlen(jid)+1);
+				//fprintf(stderr,"%s %i %i",tmp->jid,strlen(tmp->jid),strlen(jid));
 				if ((name = xmpp_stanza_get_attribute(item, "name")))
 				{	
-					tmp->name = (struct _xmpp_contact_list *)malloc(sizeof(name));
-					strncpy(tmp->name,name,sizeof(name));
+					tmp->name = (char *)malloc(strlen(name));
+					strncpy(tmp->name,name,strlen(name));
 					
 				}
+				
+				tmp=tmp->next;
 		}
 	}
 
@@ -103,8 +148,8 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 	args->ctx=(struct xmpp_ctx_t *)userdata;
 	args->conn=conn;
 
-	pthread_create( &thread1, NULL, xmpp_communication, args);
-	pthread_join( thread1, NULL);
+	//pthread_create( &thread1, NULL, xmpp_communication, args);
+	//pthread_join( thread1, NULL);
 
 	xmpp_disconnect(conn);
 
@@ -177,6 +222,9 @@ int main(int argc, char *argv[])
 	xmpp_connect_client(conn, host, port, xmpp_connection_handler, ctx);
 
 	xmpp_run(ctx);
+
+	struct _xmpp_contact_list *tt = &xmpp_contact_list;
+	if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
 
 	xmpp_conn_release(conn);
 	xmpp_ctx_free(ctx);
