@@ -33,24 +33,27 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 {
 	int res = 0;
 	char *no_root_slash,*next_slash;
-	
+	//system("echo dupa > /root/dupa");	
 	
 	memset(fstat,0,sizeof(struct stat));
-	if (strcmp(filename,"/"))
+	if (!strcmp(filename,"/"))
 	{
 		fstat->st_nlink=2;
 		fstat->st_mode=S_IFDIR | 0755;
 		return res;
 	}
 	
-	no_root_slash=filename+1;
-	next_slash=strchr(no_root_slash,"/");
+	//no_root_slash=filename+1;
+	//next_slash=strchr(no_root_slash,"/");
 		
 	//if (next_slash != NULL)
 	//	return -ENOENT;
 	
 	fstat->st_nlink=1;
 	fstat->st_mode=S_IFREG | 0700;
+	//char t[40];
+	//sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
+	//system(t);	
 		
 	return 0;
 
@@ -58,15 +61,17 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 
 static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *finfo)
 {
-	//if (strcmp(dirname,"/") !=0)
-	//	return -ENOENT;
+	(void) offset;
+	(void) finfo;
+	if (strcmp(dirname,"/") !=0)
+		return -ENOENT;
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
 
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
-	while (tmp->next !=NULL)
+	while (tmp->next->next !=NULL)
 	{
 		fprintf(stderr,"%s",tmp->jid);
 		filler(buf, tmp->jid, NULL, 0);
@@ -160,10 +165,15 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
 {
 	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
-	xmpp_stanza_t *iq, *query;
+	xmpp_stanza_t *iq, *query, *pres;
 
 	if (status == XMPP_CONN_CONNECT) {
 		fprintf(stderr, "DEBUG: connected\n");
+
+		pres = xmpp_stanza_new(ctx);
+		xmpp_stanza_set_name(pres, "presence");
+		xmpp_send(conn, pres);
+		xmpp_stanza_release(pres);
 
 		iq = xmpp_stanza_new(ctx);
 
