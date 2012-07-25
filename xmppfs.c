@@ -33,24 +33,27 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 {
 	int res = 0;
 	char *no_root_slash,*next_slash;
-	
+	//system("echo dupa > /root/dupa");	
 	
 	memset(fstat,0,sizeof(struct stat));
-	if (strcmp(filename,"/"))
+	if (!strcmp(filename,"/"))
 	{
 		fstat->st_nlink=2;
 		fstat->st_mode=S_IFDIR | 0755;
 		return res;
 	}
 	
-	no_root_slash=filename+1;
-	next_slash=strchr(no_root_slash,"/");
+	//no_root_slash=filename+1;
+	//next_slash=strchr(no_root_slash,"/");
 		
 	//if (next_slash != NULL)
 	//	return -ENOENT;
 	
 	fstat->st_nlink=1;
 	fstat->st_mode=S_IFREG | 0700;
+	//char t[40];
+	//sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
+	//system(t);	
 		
 	return 0;
 
@@ -58,21 +61,23 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 
 static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *finfo)
 {
-	//if (strcmp(dirname,"/") !=0)
-	//	return -ENOENT;
+	(void) offset;
+	(void) finfo;
+	if (strcmp(dirname,"/") !=0)
+		return -ENOENT;
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
 
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
-	while (tmp->next !=NULL)
+	/*while (tmp->next !=NULL)
 	{
 		fprintf(stderr,"%s",tmp->jid);
 		filler(buf, tmp->jid, NULL, 0);
 		tmp=tmp->next;
 	}
-
+*/
 	return 0;
 }
 
