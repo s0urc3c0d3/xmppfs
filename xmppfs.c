@@ -12,15 +12,19 @@
 #include <fcntl.h>
 #include <string.h>
 
+int xmpp_state;
+
 struct _xmpp_contact_list {
 	char *jid;
 	char *name;
+	char *stamp;
 	struct _xmpp_contact_list *next;
 };
 
 struct _xmpp_contact_list xmpp_contact_list = {
 	.jid=NULL,
 	.name=NULL,
+	.stamp=NULL,
 	.next=NULL
 };
 
@@ -69,13 +73,14 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
-
+	char *s;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 	while (tmp->next->next !=NULL)
 	{
 		fprintf(stderr,"%s",tmp->jid);
 		filler(buf, tmp->jid, NULL, 0);
 		tmp=tmp->next;
+		
 	}
 
 	return 0;
@@ -85,16 +90,6 @@ static struct fuse_operations xmppfs = {
 	.getattr = xmppfs_getattr,
 	.readdir = xmppfs_readdir
 };
-
-
-void *fuse_pthread(void *args)
-{
-	struct fuse_args_xmpp *m = (struct fuse_args_xmpp *)args;
-	int t = m->argc;
-	char *argv[4];
-	fprintf(stderr,"dupa");
-	//t = fuse_main(t, argv, &xmppfs, NULL);
-}
 
 //  XMPP_part
 
@@ -156,16 +151,41 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 	//pthread_create( &thread1, NULL, xmpp_communication, args);
 	//pthread_join( thread1, NULL);
 
-	xmpp_disconnect(conn);
+//	xmpp_disconnect(conn);
 
 	return 0;
 }
 					
+int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
+{
+	//xmpp_stanza_t *
+	char *intext, *from, *stamp;
+	xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
+	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+
+	if(!xmpp_stanza_get_child_by_name(stanza, "delay")) return 1;
+	if(!strcmp(xmpp_stanza_get_attribute(stanza, "stamp"), "error")) return 1;
+
+	from = xmpp_stanza_get_attribute(stanza, "from");
+
+	intext = xmpp_stanza_get_text(xmpp_stanza_get_child_by_name(stanza, "delay"));
+
+	stamp = xmpp_stanza_get_attribute(intext, "stamp");
+
+	while (tmp->next != NULL)
+	{
+		if (strncmp(tmp->jid,from,strlen(from)))
+		{
+			tmp->stamp=(char *)malloc(strlen(stamp));
+			strncpy(tmp->stamp,stamp,strlen(stamp));
+		}
+	}
+}
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
 {
 	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
-	xmpp_stanza_t *iq, *query;
+	xmpp_stanza_t *iq, *query, *pres;
 
 	if (status == XMPP_CONN_CONNECT) {
 		fprintf(stderr, "DEBUG: connected\n");
@@ -184,26 +204,27 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 		xmpp_stanza_release(query);
 
+		xmpp_handler_add(conn,presence_handler, NULL, "presence", NULL, ctx);
+
 		xmpp_id_handler_add(conn, xmpp_connection_handle_reply, "roster1", ctx);
 
 		xmpp_send(conn, iq);
 
 		xmpp_stanza_release(iq);
+
+		pres = xmpp_stanza_new(ctx);
+		xmpp_stanza_set_name(pres, "presence");
+		xmpp_send(conn, pres);
+		xmpp_stanza_release(pres);
+
 	} else {
 		fprintf(stderr, "DEBUG: disconnected\n");
 		xmpp_stop(ctx);
 	}
 }
 
-int main(int argc, char *argv[])
+void *xmpp_thread_main(void *args)
 {
-	pthread_t fthread;
-	struct fuse_args_xmpp *args;
-	args = (struct fuse_args_xmpp *)malloc(sizeof(struct fuse_args_xmpp));
-	args->argc=argc;
-	//args->argv=(char[] *) malloc(sizeof(argv));
-	memcpy(args->argv,argv,sizeof(argv));
-	pthread_create(&fthread,NULL,fuse_pthread,args);
 
 	char *user_jid="tester@example.jabber.com/debian";
 	char *user_pass="tester";
@@ -226,8 +247,9 @@ int main(int argc, char *argv[])
 
 	xmpp_connect_client(conn, host, port, xmpp_connection_handler, ctx);
 
-	xmpp_run(ctx);
+	int xmpp_state=1;
 
+	xmpp_run(ctx);
 	struct _xmpp_contact_list *tt = &xmpp_contact_list;
 	if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
 
@@ -235,6 +257,29 @@ int main(int argc, char *argv[])
 	xmpp_ctx_free(ctx);
 
 	xmpp_shutdown();
+
+
+}
+
+int main(int argc, char *argv[])
+{
+
+	int xmpp_state=2;
+
+	pthread_t xmpp_thread;
+
+	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
+	//pthread_t fthread;
+	//struct fuse_args_xmpp *args;
+	//args = (struct fuse_args_xmpp *)malloc(sizeof(struct fuse_args_xmpp));
+	//args->argc=argc;
+	//args->argv=(char[] *) malloc(sizeof(argv));
+	//memcpy(args->argv,argv,sizeof(argv));
+	//pthread_create(&fthread,NULL,fuse_pthread,args);
+	while (xmpp_state > 1)
+	{
+		sleep(1);
+	}
 
 	return fuse_main(argc, argv, &xmppfs, NULL);
 }
