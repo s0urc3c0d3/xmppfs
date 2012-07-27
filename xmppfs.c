@@ -36,8 +36,9 @@ struct fuse_args_xmpp {
 static int xmppfs_getattr(const char *filename, struct stat *fstat)
 {
 	int res = 0;
-	char *no_root_slash,*next_slash;
-	//system("echo dupa > /root/dupa");	
+	char /**no_root_slash,*next_slash,*/ *substr;
+	struct tm *tmp_time;
+system("echo dupa > /root/dupa");	
 	
 	memset(fstat,0,sizeof(struct stat));
 	if (!strcmp(filename,"/"))
@@ -55,9 +56,42 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	
 	fstat->st_nlink=1;
 	fstat->st_mode=S_IFREG | 0700;
-	//char t[40];
-	//sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
-	//system(t);	
+	char t[40];
+	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
+	system(t);	
+	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+
+	while(tmp->next != NULL )
+	{
+		if (strncmp(tmp->jid,filename,strlen(filename)) && !tmp->stamp != NULL)
+		{
+			substr=(char *)malloc(5);
+			memset(substr,0,5);
+			strncpy(substr, tmp->stamp, 4);
+			tmp_time=(struct tm *)malloc(sizeof(struct tm));
+			tmp_time->tm_year=atoi(substr);
+
+			memset(substr,0,5);
+			strncpy(substr, tmp->stamp+5, 2);
+			tmp_time->tm_mon=atoi(substr);
+
+			memset(substr,0,5);
+			strncpy(substr, tmp->stamp+8, 2);
+			tmp_time->tm_mday=atoi(substr);
+
+			memset(substr,0,5);
+			strncpy(substr, tmp->stamp+11, 2);
+			tmp_time->tm_hour=atoi(substr);
+
+			memset(substr,0,5);
+			strncpy(substr, tmp->stamp+14, 2);
+			tmp_time->tm_min=atoi(substr);
+
+			memset(substr,0,5);
+			strncpy(substr, tmp->stamp+17, 2);
+			tmp_time->tm_sec=atoi(substr);
+		}
+	}
 		
 	return 0;
 
@@ -73,7 +107,6 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
-	char *s;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 	while (tmp->next->next !=NULL)
 	{
@@ -104,10 +137,10 @@ struct xmpp_thread_arg  {
 
 void *xmpp_communication(void *args)
 {
-	struct xmpp_thread_arg *arg = (struct xmpp_thread_arg *)args;
+	/*struct xmpp_thread_arg *arg = (struct xmpp_thread_arg *)args;
 	struct xmpp_ctx_t *ctx = arg->ctx;
 	struct xmpp_conn_t *conn = arg->conn;
-
+*/
 }
 
 int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
@@ -160,7 +193,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 {
 	//xmpp_stanza_t *
 	char *intext, *from, *stamp;
-	xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
+	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	if(!xmpp_stanza_get_child_by_name(stanza, "delay")) return 1;
@@ -247,7 +280,7 @@ void *xmpp_thread_main(void *args)
 
 	xmpp_connect_client(conn, host, port, xmpp_connection_handler, ctx);
 
-	int xmpp_state=1;
+	xmpp_state=1;
 
 	xmpp_run(ctx);
 	struct _xmpp_contact_list *tt = &xmpp_contact_list;
@@ -264,7 +297,7 @@ void *xmpp_thread_main(void *args)
 int main(int argc, char *argv[])
 {
 
-	int xmpp_state=2;
+	xmpp_state=2;
 
 	pthread_t xmpp_thread;
 
