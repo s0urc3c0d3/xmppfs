@@ -196,6 +196,10 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
+	char *s, *t=stanza->data;
+	sprintf(s,"echo %s >> /root/dupa3",t);
+	system(s);
+	
 	if(!xmpp_stanza_get_child_by_name(stanza, "delay")) return 1;
 	if(!strcmp(xmpp_stanza_get_attribute(stanza, "stamp"), "error")) return 1;
 
