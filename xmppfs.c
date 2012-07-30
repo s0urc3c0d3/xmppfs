@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/libstrophe-1.0.0/src/common.h"
+#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
 
 int xmpp_state;
 
@@ -151,7 +151,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 
 	struct _xmpp_contact_list *tmp;
 	tmp=&xmpp_contact_list;
-	
+
 	type = xmpp_stanza_get_type(stanza);
 	if (strcmp(type,"error") == 0)
 		fprintf(stderr, "ERROR: query failed\n");
@@ -197,16 +197,17 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	system("echo costam > /root/dupa3");
-	char *s;
-	sprintf(s,"echo %s >> /root/dupa3",stanza->data);
-	system(s);
-	
 	if(!xmpp_stanza_get_child_by_name(stanza, "delay")) return 1;
 	if(!strcmp(xmpp_stanza_get_attribute(stanza, "stamp"), "error")) return 1;
 
 	from = xmpp_stanza_get_attribute(stanza, "from");
 
+	system("echo costam > /root/dupa3");
+	//char *s;
+	if (from == NULL) system("echo no i dupa >> /root/dupa3");
+	//sprintf(s,"echo %s >> /root/dupa3",from);
+	//system(s);
+	
 	intext = xmpp_stanza_get_text(xmpp_stanza_get_child_by_name(stanza, "delay"));
 
 	stamp = xmpp_stanza_get_attribute(intext, "stamp");
