@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include "/root/libstrophe-1.0.0/src/common.h"
 
 int xmpp_state;
 
@@ -196,8 +197,9 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	char *s, *t=stanza->data;
-	sprintf(s,"echo %s >> /root/dupa3",t);
+	system("echo costam > /root/dupa3");
+	char *s;
+	sprintf(s,"echo %s >> /root/dupa3",stanza->data);
 	system(s);
 	
 	if(!xmpp_stanza_get_child_by_name(stanza, "delay")) return 1;
@@ -241,9 +243,9 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 		xmpp_stanza_release(query);
 
-		xmpp_handler_add(conn,presence_handler, NULL, "presence", NULL, ctx);
-
-		xmpp_id_handler_add(conn, xmpp_connection_handle_reply, "roster1", ctx);
+		xmpp_handler_add(conn, presence_handler, NULL, "presence", NULL, ctx);
+		xmpp_handler_add(conn, xmpp_connection_handle_reply, "get:iq:roster1", "iq",NULL, ctx);
+	//	xmpp_id_handler_add(conn, xmpp_connection_handle_reply, "roster1", ctx);
 
 		xmpp_send(conn, iq);
 
