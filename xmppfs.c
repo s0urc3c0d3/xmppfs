@@ -193,28 +193,30 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
 	//xmpp_stanza_t *
-	char *intext, *from, *stamp;
+	char *intext, *x, *stamp;
 	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	if(!xmpp_stanza_get_child_by_name(stanza, "delay")) return 1;
-	if(!strcmp(xmpp_stanza_get_attribute(stanza, "stamp"), "error")) return 1;
-
-	from = xmpp_stanza_get_attribute(stanza, "from");
-
 	system("echo costam > /root/dupa3");
-	//char *s;
-	if (from == NULL) system("echo no i dupa >> /root/dupa3");
-	//sprintf(s,"echo %s >> /root/dupa3",from);
-	//system(s);
-	
+
+	if(!xmpp_stanza_get_child_by_name(stanza, "x")) return 1;
+	//if(!strcmp(xmpp_stanza_get_attribute(stanza, "stamp"), "error")) return 1;
+
+	x = xmpp_stanza_get_attribute(stanza, "x");
+
+	char *s;
+	//if (from == NULL) system("echo no i dupa >> /root/dupa3");
+	sprintf(s,"echo '%s' >> /root/dupa3",x);
+	system(s);
+	return 1;
+
 	intext = xmpp_stanza_get_text(xmpp_stanza_get_child_by_name(stanza, "delay"));
 
 	stamp = xmpp_stanza_get_attribute(intext, "stamp");
 
 	while (tmp->next != NULL)
 	{
-		if (strncmp(tmp->jid,from,strlen(from)))
+		if (strncmp(tmp->jid,x,strlen(x)))
 		{
 			tmp->stamp=(char *)malloc(strlen(stamp));
 			strncpy(tmp->stamp,stamp,strlen(stamp));
