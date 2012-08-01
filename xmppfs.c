@@ -192,40 +192,28 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 					
 int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	//xmpp_stanza_t *
-	char *intext, *x, *stamp;
+	xmpp_stanza_t *x;
+	char *from, *stamp;
 	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	system("echo costam > /root/dupa3");
-
+	system("echo costaaaaaaaaa > /root/dupa3");
 	if(!xmpp_stanza_get_child_by_name(stanza, "x")) return 1;
-	//if(!strcmp(xmpp_stanza_get_attribute(stanza, "stamp"), "error")) return 1;
+	if(!xmpp_stanza_get_attribute(stanza, "from")) return 1;
 
-	x = xmpp_stanza_get_attribute(stanza, "x");
-
-	char **si, *s, *t=(char *)malloc(1000);
-	size_t *i=(size_t *)malloc(sizeof(size_t));
-	xmpp_stanza_t *stan;
-	i=(size_t)1000;
-	si=&s;
-	xmpp_stanza_to_text(stan,si,i);
-	//if (from == NULL) system("echo no i dupa >> /root/dupa3");
-	sprintf(t,"echo '%s' >> /root/dupa3",s);
-	system(t);
-	return 1;
-
-	intext = xmpp_stanza_get_text(xmpp_stanza_get_child_by_name(stanza, "delay"));
-
-	stamp = xmpp_stanza_get_attribute(intext, "stamp");
+	//x = xmpp_stanza_get_text(xmpp_stanza_get_child_by_name(stanza, "x"));
+	x = xmpp_stanza_get_child_by_name(stanza, "x");
+	stamp = xmpp_stanza_get_attribute(x, "stamp");
+	from = xmpp_stanza_get_attribute(stanza, "from");
 
 	while (tmp->next != NULL)
 	{
-		if (strncmp(tmp->jid,x,strlen(x)))
+		if (strncmp(tmp->jid,from,strlen(from)))
 		{
 			tmp->stamp=(char *)malloc(strlen(stamp));
 			strncpy(tmp->stamp,stamp,strlen(stamp));
 		}
+		tmp=tmp->next;
 	}
 }
 
@@ -259,6 +247,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 		xmpp_stanza_release(iq);
 
+		sleep(1);
 		pres = xmpp_stanza_new(ctx);
 		xmpp_stanza_set_name(pres, "presence");
 		xmpp_send(conn, pres);
@@ -294,9 +283,9 @@ void *xmpp_thread_main(void *args)
 
 	xmpp_connect_client(conn, host, port, xmpp_connection_handler, ctx);
 
-	xmpp_state=1;
 
 	xmpp_run(ctx);
+	xmpp_state=0;
 	struct _xmpp_contact_list *tt = &xmpp_contact_list;
 	if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
 
@@ -311,7 +300,7 @@ void *xmpp_thread_main(void *args)
 int main(int argc, char *argv[])
 {
 
-	xmpp_state=2;
+	xmpp_state=1;
 
 	pthread_t xmpp_thread;
 
@@ -323,10 +312,11 @@ int main(int argc, char *argv[])
 	//args->argv=(char[] *) malloc(sizeof(argv));
 	//memcpy(args->argv,argv,sizeof(argv));
 	//pthread_create(&fthread,NULL,fuse_pthread,args);
-	while (xmpp_state > 1)
+
+	int r =  fuse_main(argc, argv, &xmppfs, NULL);
+
+	while (xmpp_state > 0)
 	{
 		sleep(1);
 	}
-
-	return fuse_main(argc, argv, &xmppfs, NULL);
 }
