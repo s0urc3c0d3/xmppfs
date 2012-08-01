@@ -204,10 +204,15 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 
 	x = xmpp_stanza_get_attribute(stanza, "x");
 
-	char *s;
+	char **si, *s, *t=(char *)malloc(1000);
+	size_t *i=(size_t *)malloc(sizeof(size_t));
+	xmpp_stanza_t *stan;
+	i=(size_t)1000;
+	si=&s;
+	xmpp_stanza_to_text(stan,si,i);
 	//if (from == NULL) system("echo no i dupa >> /root/dupa3");
-	sprintf(s,"echo '%s' >> /root/dupa3",x);
-	system(s);
+	sprintf(t,"echo '%s' >> /root/dupa3",s);
+	system(t);
 	return 1;
 
 	intext = xmpp_stanza_get_text(xmpp_stanza_get_child_by_name(stanza, "delay"));
