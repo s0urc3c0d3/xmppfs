@@ -11,9 +11,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-
-int xmpp_state;
+#include "/root/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -197,7 +195,6 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	system("echo costaaaaaaaaa > /root/dupa3");
 	if(!xmpp_stanza_get_child_by_name(stanza, "x")) return 1;
 	if(!xmpp_stanza_get_attribute(stanza, "from")) return 1;
 
@@ -206,8 +203,14 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	stamp = xmpp_stanza_get_attribute(x, "stamp");
 	from = xmpp_stanza_get_attribute(stanza, "from");
 
+	char *s;
 	while (tmp->next != NULL)
 	{
+		system("echo > /root/dupa3");
+		sprintf(s,"echo %s %s >> /root/dupa3",tmp->jid,from);
+		system(s);
+		s=NULL;
+		
 		if (strncmp(tmp->jid,from,strlen(from)))
 		{
 			tmp->stamp=(char *)malloc(strlen(stamp));
@@ -285,7 +288,6 @@ void *xmpp_thread_main(void *args)
 
 
 	xmpp_run(ctx);
-	xmpp_state=0;
 	struct _xmpp_contact_list *tt = &xmpp_contact_list;
 	if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
 
@@ -300,7 +302,6 @@ void *xmpp_thread_main(void *args)
 int main(int argc, char *argv[])
 {
 
-	xmpp_state=1;
 
 	pthread_t xmpp_thread;
 
@@ -314,9 +315,8 @@ int main(int argc, char *argv[])
 	//pthread_create(&fthread,NULL,fuse_pthread,args);
 
 	int r =  fuse_main(argc, argv, &xmppfs, NULL);
+	system ("echo > /root/dupa4");
 
-	while (xmpp_state > 0)
-	{
-		sleep(1);
-	}
+	void *status;
+	pthread_join(xmpp_thread,&status);
 }
