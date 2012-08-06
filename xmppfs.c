@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/libstrophe-1.0.0/src/common.h"
+#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -299,12 +299,16 @@ void *xmpp_thread_main(void *args)
 
 }
 
+int argc2;
+
+void *fuse_thread_main(void *args)
+{
+	int r =  fuse_main(argc2, args, &xmppfs, NULL);
+}
+
 int main(int argc, char *argv[])
 {
-
-
-	pthread_t xmpp_thread;
-
+	pthread_t xmpp_thread, fuse_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
 	//pthread_t fthread;
 	//struct fuse_args_xmpp *args;
@@ -314,7 +318,9 @@ int main(int argc, char *argv[])
 	//memcpy(args->argv,argv,sizeof(argv));
 	//pthread_create(&fthread,NULL,fuse_pthread,args);
 
-	int r =  fuse_main(argc, argv, &xmppfs, NULL);
+	argc2=argc;
+
+	pthread_create(&fuse_thread,NULL,fuse_thread_main,argv);
 	system ("echo > /root/dupa4");
 
 	void *status;
