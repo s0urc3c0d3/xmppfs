@@ -20,6 +20,8 @@ struct _xmpp_contact_list {
 	struct _xmpp_contact_list *next;
 };
 
+int xmpp_status;
+
 struct _xmpp_contact_list xmpp_contact_list = {
 	.jid=NULL,
 	.name=NULL,
@@ -58,7 +60,7 @@ system("echo dupa > /root/dupa");
 	char t[40];
 	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
 	system(t);	
-	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+	/*struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	while(tmp->next != NULL )
 	{
@@ -90,7 +92,7 @@ system("echo dupa > /root/dupa");
 			strncpy(substr, tmp->stamp+17, 2);
 			tmp_time->tm_sec=atoi(substr);
 		}
-	}
+	}*/
 		
 	return 0;
 
@@ -106,6 +108,7 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
+	return 0;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 	while (tmp->next->next !=NULL)
 	{
@@ -299,15 +302,9 @@ void *xmpp_thread_main(void *args)
 
 }
 
-int argc2;
-
-void *fuse_thread_main(void *args)
-{
-	int r =  fuse_main(argc2, args, &xmppfs, NULL);
-}
-
 int main(int argc, char *argv[])
 {
+	xmpp_status=0;
 	pthread_t xmpp_thread, fuse_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
 	//pthread_t fthread;
@@ -318,11 +315,10 @@ int main(int argc, char *argv[])
 	//memcpy(args->argv,argv,sizeof(argv));
 	//pthread_create(&fthread,NULL,fuse_pthread,args);
 
-	argc2=argc;
-
-	pthread_create(&fuse_thread,NULL,fuse_thread_main,argv);
+	int r =  fuse_main(argc, argv, &xmppfs, NULL);
 	system ("echo > /root/dupa4");
 
 	void *status;
 	pthread_join(xmpp_thread,&status);
+	system ("echo a > /root/dupa4");
 }
