@@ -315,10 +315,20 @@ int main(int argc, char *argv[])
 	//memcpy(args->argv,argv,sizeof(argv));
 	//pthread_create(&fthread,NULL,fuse_pthread,args);
 
-	int r =  fuse_main(argc, argv, &xmppfs, NULL);
+	//int r =  fuse_main(argc, argv, &xmppfs, NULL);
+	
+	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
+
+	const char mountpoint = "/mnt";
+
+	struct fuse_chan * fch = fuse_mount(&mountpoint, &args);
+
+	struct fuse *fs = fuse_new(fch, &args, &xmppfs, sizeof(xmppfs), NULL);
 	system ("echo > /root/dupa4");
 
 	void *status;
 	pthread_join(xmpp_thread,&status);
 	system ("echo a > /root/dupa4");
+
+	
 }
