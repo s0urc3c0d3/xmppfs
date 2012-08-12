@@ -60,7 +60,7 @@ system("echo dupa > /root/dupa");
 	char t[40];
 	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
 	system(t);	
-	/*struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	while(tmp->next != NULL )
 	{
@@ -92,7 +92,7 @@ system("echo dupa > /root/dupa");
 			strncpy(substr, tmp->stamp+17, 2);
 			tmp_time->tm_sec=atoi(substr);
 		}
-	}*/
+	}
 		
 	return 0;
 
@@ -183,8 +183,8 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 	args->ctx=(struct xmpp_ctx_t *)userdata;
 	args->conn=conn;
 
-	//pthread_create( &thread1, NULL, xmpp_communication, args);
-	//pthread_join( thread1, NULL);
+	pthread_create( &thread1, NULL, xmpp_communication, args);
+	pthread_join( thread1, NULL);
 
 //	xmpp_disconnect(conn);
 
@@ -247,7 +247,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 		xmpp_handler_add(conn, presence_handler, NULL, "presence", NULL, ctx);
 		xmpp_handler_add(conn, xmpp_connection_handle_reply, "get:iq:roster1", "iq",NULL, ctx);
-	//	xmpp_id_handler_add(conn, xmpp_connection_handle_reply, "roster1", ctx);
+		xmpp_id_handler_add(conn, xmpp_connection_handle_reply, "roster1", ctx);
 
 		xmpp_send(conn, iq);
 
@@ -291,8 +291,8 @@ void *xmpp_thread_main(void *args)
 
 
 	xmpp_run(ctx);
-	struct _xmpp_contact_list *tt = &xmpp_contact_list;
-	if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
+	//struct _xmpp_contact_list *tt = &xmpp_contact_list;
+	//if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
 
 	xmpp_conn_release(conn);
 	xmpp_ctx_free(ctx);
@@ -300,6 +300,19 @@ void *xmpp_thread_main(void *args)
 	xmpp_shutdown();
 
 
+}
+
+static void *fuse_thread(void *arg)
+{
+	struct fuse *fs = (struct fuse *)arg;
+	if(arg) {}
+
+	if(fuse_loop(fs->fuse) < 0) {
+		perror("fuse_loop");
+		fs->failed = 1;
+	}
+	fuse_destroy(fs->fuse);
+	return NULL;
 }
 
 int main(int argc, char *argv[])
@@ -321,14 +334,15 @@ int main(int argc, char *argv[])
 
 	const char mountpoint = "/mnt";
 
-	struct fuse_chan * fch = fuse_mount(&mountpoint, &args);
+	struct fuse_chan *fch = fuse_mount(&mountpoint, &args);
 
 	struct fuse *fs = fuse_new(fch, &args, &xmppfs, sizeof(xmppfs), NULL);
-	system ("echo > /root/dupa4");
+	pthread_create(fs->pid, NULL, fuse_thread, NULL);
+
+//	system ("echo > /root/dupa4");
 
 	void *status;
 	pthread_join(xmpp_thread,&status);
-	system ("echo a > /root/dupa4");
-
+	//system ("echo a > /root/dupa4");
 	
 }
