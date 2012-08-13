@@ -57,7 +57,7 @@ system("echo dupa > /root/dupa");
 	
 	fstat->st_nlink=1;
 	fstat->st_mode=S_IFREG | 0700;
-	char t[40];
+	/*char t[40];
 	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
 	system(t);	
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
@@ -92,7 +92,7 @@ system("echo dupa > /root/dupa");
 			strncpy(substr, tmp->stamp+17, 2);
 			tmp_time->tm_sec=atoi(substr);
 		}
-	}
+	}*/
 		
 	return 0;
 
@@ -206,7 +206,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	stamp = xmpp_stanza_get_attribute(x, "stamp");
 	from = xmpp_stanza_get_attribute(stanza, "from");
 
-	char *s;
+	/*char *s;
 	while (tmp->next != NULL)
 	{
 		system("echo > /root/dupa3");
@@ -220,7 +220,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 			strncpy(tmp->stamp,stamp,strlen(stamp));
 		}
 		tmp=tmp->next;
-	}
+	}*/
 }
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
@@ -302,23 +302,31 @@ void *xmpp_thread_main(void *args)
 
 }
 
-static void *fuse_thread(void *arg)
+static struct fuse_server {
+	pthread_t pid;
+	struct fuse *fuse;
+	struct fuse_chan *ch;
+	int failed;
+} fs;
+
+void *fuse_thread(void *arg)
 {
-	struct fuse *fs = (struct fuse *)arg;
 	if(arg) {}
 
-	if(fuse_loop(fs->fuse) < 0) {
+	fprintf(stderr,"dupa");
+	if(fuse_loop(fs.fuse) < 0) {
 		perror("fuse_loop");
-		fs->failed = 1;
+		fs.failed = 1;
 	}
-	fuse_destroy(fs->fuse);
+	fprintf(stderr,"dupa");
+	fuse_destroy(fs.fuse);
 	return NULL;
 }
 
 int main(int argc, char *argv[])
 {
 	xmpp_status=0;
-	pthread_t xmpp_thread, fuse_thread;
+	pthread_t xmpp_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
 	//pthread_t fthread;
 	//struct fuse_args_xmpp *args;
@@ -332,12 +340,14 @@ int main(int argc, char *argv[])
 	
 	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
 
-	const char mountpoint = "/mnt";
+	const char *mountpoint = "/mnt";
 
-	struct fuse_chan *fch = fuse_mount(&mountpoint, &args);
+	fprintf(stderr,"%s\n",mountpoint);
+	
+	fs.ch = fuse_mount(mountpoint, &args);
 
-	struct fuse *fs = fuse_new(fch, &args, &xmppfs, sizeof(xmppfs), NULL);
-	pthread_create(fs->pid, NULL, fuse_thread, NULL);
+	fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
+	pthread_create(&fs.pid, NULL, fuse_thread, NULL);
 
 //	system ("echo > /root/dupa4");
 
