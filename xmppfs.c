@@ -313,13 +313,14 @@ void *fuse_thread(void *arg)
 {
 	if(arg) {}
 
-	fprintf(stderr,"dupa");
+	struct fuse *f=fs.fuse;
+	//if (f == NULL) fprintf(stderr,"dupa");
 	if(fuse_loop(fs.fuse) < 0) {
 		perror("fuse_loop");
 		fs.failed = 1;
 	}
-	fprintf(stderr,"dupa");
-	fuse_destroy(fs.fuse);
+	fprintf(stderr,"dupa2");
+	//fuse_destroy(fs.fuse);
 	return NULL;
 }
 
