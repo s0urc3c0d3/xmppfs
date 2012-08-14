@@ -39,7 +39,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	int res = 0;
 	char /**no_root_slash,*next_slash,*/ *substr;
 	struct tm *tmp_time;
-system("echo dupa > /root/dupa");	
+//system("echo dupa > /root/dupa");	
 	
 	memset(fstat,0,sizeof(struct stat));
 	if (!strcmp(filename,"/"))
@@ -59,11 +59,11 @@ system("echo dupa > /root/dupa");
 	fstat->st_mode=S_IFREG | 0700;
 	/*char t[40];
 	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
-	system(t);	
+	system(t);*/	
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	while(tmp->next != NULL )
-	{
+	//while(tmp->next != NULL )
+	//{
 		if (strncmp(tmp->jid,filename,strlen(filename)) && !tmp->stamp != NULL)
 		{
 			substr=(char *)malloc(5);
@@ -92,7 +92,7 @@ system("echo dupa > /root/dupa");
 			strncpy(substr, tmp->stamp+17, 2);
 			tmp_time->tm_sec=atoi(substr);
 		}
-	}*/
+	//}
 		
 	return 0;
 
@@ -108,11 +108,16 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
-	return 0;
+	//return 0;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+
+	//if (tmp->next != NULL) system("echo null found! > /root/dupa");
+
+	//char *s;
 	while (tmp->next->next !=NULL)
 	{
-		fprintf(stderr,"%s",tmp->jid);
+		//sprintf(s,"echo %s >> /dupa/root3",tmp->jid);
+		//system(s);
 		filler(buf, tmp->jid, NULL, 0);
 		tmp=tmp->next;
 		
@@ -206,13 +211,9 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	stamp = xmpp_stanza_get_attribute(x, "stamp");
 	from = xmpp_stanza_get_attribute(stanza, "from");
 
-	/*char *s;
 	while (tmp->next != NULL)
 	{
-		system("echo > /root/dupa3");
-		sprintf(s,"echo %s %s >> /root/dupa3",tmp->jid,from);
-		system(s);
-		s=NULL;
+		fprintf(stderr,"%s %s\n",tmp->jid,from);
 		
 		if (strncmp(tmp->jid,from,strlen(from)))
 		{
@@ -220,7 +221,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 			strncpy(tmp->stamp,stamp,strlen(stamp));
 		}
 		tmp=tmp->next;
-	}*/
+	}
 }
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
@@ -347,7 +348,7 @@ int main(int argc, char *argv[])
 	
 	fs.ch = fuse_mount(mountpoint, &args);
 
-	fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
+	fs.fuse = fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
 	pthread_create(&fs.pid, NULL, fuse_thread, NULL);
 
 //	system ("echo > /root/dupa4");
