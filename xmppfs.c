@@ -11,8 +11,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-#include "/root/libstrophe-1.0.0/src/common.h"
+#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+//#include "/root/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -37,6 +37,9 @@ struct fuse_args_xmpp {
 
 static int xmppfs_getattr(const char *filename, struct stat *fstat)
 {
+
+	fstat = (struct stat *)malloc(sizeof(struct stat));
+
 	int res = 0;
 	char /**no_root_slash,*next_slash,*/ *substr;
 	struct tm *tmp_time;
@@ -72,7 +75,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp, 4);
 			tmp_time=(struct tm *)malloc(sizeof(struct tm));
-			tmp_time->tm_year=atoi(substr);
+			tmp_time->tm_year=atoi(substr)-1900;
 
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp+4, 2);
@@ -93,12 +96,17 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp+15, 2);
 			tmp_time->tm_sec=atoi(substr);
+
+			tmp_time->tm_isdst = -1;
 			
 			char *s;
 			sprintf(s,"echo %s %i %i %i %i %i %i > /root/dupa5",tmp->stamp,tmp_time->tm_year,tmp_time->tm_mon,tmp_time->tm_mday,tmp_time->tm_hour,tmp_time->tm_min,tmp_time->tm_sec);
 			system(s);
 			time_of_presence = mktime(tmp_time);
-			fstat->st_ctime = time_of_presence;
+	char *d;
+	sprintf(d,"echo %i %i>> /root/dupa",time_of_presence,tmp_time->tm_year);
+	system(d);
+			fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
 	system("echo > /root/dupa5");
 		}
 	//}
@@ -123,7 +131,7 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	//if (tmp->next != NULL) system("echo null found! > /root/dupa");
 
 	//char *s;
-	while (tmp->jid != NULL && tmp->next->next != NULL)
+	while (tmp->next->next != NULL)
 	{
 		//sprintf(s,"echo %s >> /dupa/root3",tmp->jid);
 		//system(s);
@@ -220,7 +228,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 	stamp = xmpp_stanza_get_attribute(x, "stamp");
 	from = xmpp_stanza_get_attribute(stanza, "from");
 // added second condition to while - tmp_jid != NULL because sometimes segfault was raised
-	while (tmp->next != NULL && tmp->jid != NULL)
+	while (tmp->next != NULL) // && tmp->jid != NULL)
 	{
 //		fprintf(stderr,"%s %s\n",tmp->jid,from);
 		
