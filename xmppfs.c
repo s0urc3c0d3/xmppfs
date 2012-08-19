@@ -38,7 +38,7 @@ struct fuse_args_xmpp {
 static int xmppfs_getattr(const char *filename, struct stat *fstat)
 {
 
-	fstat = (struct stat *)malloc(sizeof(struct stat));
+	//fstat = (struct stat *)malloc(sizeof(struct stat));
 
 	int res = 0;
 	char /**no_root_slash,*next_slash,*/ *substr;
@@ -106,8 +106,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	char *d;
 	sprintf(d,"echo %i %i>> /root/dupa",time_of_presence,tmp_time->tm_year);
 	system(d);
-			fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
-	system("echo > /root/dupa5");
+			//fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
 		}
 	//}
 		
@@ -124,6 +123,7 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
+	//system("echo > /root/dupa5");
 	
 	//return 0;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
