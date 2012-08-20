@@ -11,8 +11,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-#include "/root/libstrophe-1.0.0/src/common.h"
+#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+//#include "/root/libstrophe-1.0.0/src/common.h"
+
+int rbuflen, wbuflen;
+char *rbuf, *wbuf;
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -144,9 +147,36 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	return 0;
 }
 
+static int xmppfs_open(const char *filename, struct fuse_file_info *fi)
+{
+	//this function is puted here only for fuse to work. Always we want to allow opening files in xmpp
+	return 0;
+}
+
+static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{
+	
+}
+
+static int xmppfs_write(const char *filename, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{
+	
+}
+
+static int xmppfs_release(const char *filename, struct fuse_file_info *fi)
+{
+	//this function is required by VFS. But it always in xmppfs return 0
+	return 0;
+}
+
+
 static struct fuse_operations xmppfs = {
 	.getattr = xmppfs_getattr,
-	.readdir = xmppfs_readdir
+	.readdir = xmppfs_readdir,
+	.open = xmppfs_open,
+	.read = xmppfs_read,
+	.write = xmppfs_write,
+	.release = xmppfs_release
 };
 
 //  XMPP_part
@@ -231,12 +261,12 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 // added second condition to while - tmp_jid != NULL because sometimes segfault was raised
 	while (tmp->next != NULL) // && tmp->jid != NULL)
 	{
-//		fprintf(stderr,"%s %s\n",tmp->jid,from);
 		
 		if (strncmp(tmp->jid,from,strlen(from)))
 		{
 			tmp->stamp=(char *)malloc(strlen(stamp));
 			strncpy(tmp->stamp,stamp,strlen(stamp));
+		fprintf(stderr," %s\n",tmp->stamp);
 		}
 		tmp=tmp->next;
 	}
@@ -272,7 +302,6 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 		xmpp_stanza_release(iq);
 
-		sleep(1);
 		pres = xmpp_stanza_new(ctx);
 		xmpp_stanza_set_name(pres, "presence");
 		xmpp_send(conn, pres);
@@ -345,6 +374,10 @@ void *fuse_thread(void *arg)
 
 int main(int argc, char *argv[])
 {
+	rbuf = (char *)malloc(1024);
+	wbuf = (char *)malloc(1024);
+	rbuflen = wbuflen = 1024;
+
 	xmpp_status=0;
 	pthread_t xmpp_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
