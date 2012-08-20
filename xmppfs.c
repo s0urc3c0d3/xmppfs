@@ -11,8 +11,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-//#include "/root/libstrophe-1.0.0/src/common.h"
+//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+#include "/root/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -67,10 +67,11 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	system(t);*/	
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	//while(tmp->next != NULL )
-	//{
-		if (strncmp(tmp->jid,filename,strlen(filename)) && tmp->stamp != NULL)
+	while(tmp->next != NULL )
+	{
+		if (strncmp(tmp->jid,filename+1,strlen(filename)-1) == 0 && tmp->stamp != NULL)
 		{
+		fprintf(stderr,"\n%s     %s  %s\n",tmp->jid,filename,tmp->stamp);
 			substr=(char *)malloc(5);
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp, 4);
@@ -79,7 +80,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp+4, 2);
-			tmp_time->tm_mon=atoi(substr);
+			tmp_time->tm_mon=atoi(substr) - 1;
 
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp+6, 2);
@@ -99,16 +100,17 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 
 			tmp_time->tm_isdst = -1;
 			
-			char *s;
-			sprintf(s,"echo %s %i %i %i %i %i %i > /root/dupa5",tmp->stamp,tmp_time->tm_year,tmp_time->tm_mon,tmp_time->tm_mday,tmp_time->tm_hour,tmp_time->tm_min,tmp_time->tm_sec);
-			system(s);
+//			char *s;
+//			sprintf(s,"echo %s %i %i %i %i %i %i > /root/dupa5",tmp->stamp,tmp_time->tm_year,tmp_time->tm_mon,tmp_time->tm_mday,tmp_time->tm_hour,tmp_time->tm_min,tmp_time->tm_sec);
+//			system(s);
 			time_of_presence = mktime(tmp_time);
-	char *d;
-	sprintf(d,"echo %i %i>> /root/dupa",time_of_presence,tmp_time->tm_year);
-	system(d);
-			//fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
+/*//	char *d;
+//	sprintf(d,"echo %i %i %s>> /root/dupa",time_of_presence,tmp_time->tm_year,tmp->jid);
+//	system(d);*/
+			fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
 		}
-	//}
+		tmp=tmp->next;
+	}
 		
 	return 0;
 
@@ -123,7 +125,6 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-	//system("echo > /root/dupa5");
 	
 	//return 0;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
@@ -131,7 +132,7 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	//if (tmp->next != NULL) system("echo null found! > /root/dupa");
 
 	//char *s;
-	while (tmp->next->next != NULL)
+	while (tmp->next != NULL)
 	{
 		//sprintf(s,"echo %s >> /dupa/root3",tmp->jid);
 		//system(s);
