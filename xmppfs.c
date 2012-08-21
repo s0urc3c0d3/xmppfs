@@ -1,6 +1,8 @@
 //gcc -o xmppfs xmppfs.c -D_FILE_OFFSET_BITS=64 -L/usr/local/lib/ -lstrophe -lexpat -lssl  -lcrypto -lz  -lresolv -Wall `pkg-config fuse --cflags --libs`
 
 #define FUSE_USE_VERSION 26
+#define READBUF_LEN 1024
+#define WRITEBUF_LEN 1024
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,17 +13,18 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-//#include "/root/libstrophe-1.0.0/src/common.h"
-
-int rbuflen, wbuflen;
-char *rbuf, *wbuf;
+//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+#include "/root/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
 	char *name;
 	char *stamp;
 	struct _xmpp_contact_list *next;
+	int rbuflen;
+	int wbuflen;
+	char *rbuf;
+	char *wbuf;
 };
 
 int xmpp_status;
@@ -155,7 +158,21 @@ static int xmppfs_open(const char *filename, struct fuse_file_info *fi)
 
 static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-	
+	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+	int len;
+	while (tmp->next != NULL)
+	{
+		if (strncpy(filename+1,tmp->jid,strlen(tmp->jid))==0)
+		{
+			if (tmp->rbuflen == 0) return 0;
+			if (tmp->rbuflen > size) len=size; else len = tmp->rbuflen;
+			strncpy(buf,tmp->rbuf,len);
+			//move data from end of the rbuf to the begining, making this way more space for write function
+			strncpy(tmp->rbuf,tmp->rbuf+len,1024-len);
+			tmp->rbuflen-=len;
+			return len;
+		}
+	}
 }
 
 static int xmppfs_write(const char *filename, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
@@ -220,6 +237,10 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 				tmp->jid = (char *)malloc(strlen(jid)+1);
 				memset(tmp->jid,0,strlen(jid)+1);
 				strncpy(tmp->jid,jid,strlen(jid)+1);
+				tmp->rbuflen=0;
+				tmp->wbuflen=0;
+				tmp->rbuf=(char *)malloc(READBUF_LEN);
+				tmp->wbuf=(char *)malloc(WRITEBUF_LEN);
 				//fprintf(stderr,"%s %i %i",tmp->jid,strlen(tmp->jid),strlen(jid));
 				if ((name = xmpp_stanza_get_attribute(item, "name")))
 				{	
@@ -271,6 +292,37 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 		tmp=tmp->next;
 	}
 }
+int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
+{
+	xmpp_stanza_t *x;
+	char *from, *msg, *msgt=(char *)malloc(1024);
+	int mlen;
+	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
+	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+
+	if(!xmpp_stanza_get_child_by_name(stanza, "body")) return 1;
+	if(!xmpp_stanza_get_attribute(stanza, "from")) return 1;
+
+	from = xmpp_stanza_get_attribute(stanza, "from");
+	msg = xmpp_stanza_get_child_by_name(stanza ,"body");
+
+	while(tmp->next != NULL)
+	{
+		if (strncmp(from,tmp->jid,strlen(from)) == 0)
+		{
+			//zwiekszanie bufora
+			msgt=xmpp_stanza_get_text(msg);
+			mlen = strlen(msgt);
+			if (mlen + tmp->rbuflen > READBUF_LEN) 
+				mlen = READBUF_LEN - tmp->rbuflen;
+			strncpy(tmp->rbuf+tmp->rbuflen,msgt,mlen);
+			tmp->rbuf+=mlen;
+			if (tmp->rbuf < READBUF_LEN) memset(tmp->rbuf+tmp->rbuflen,0,READBUF_LEN-tmp->rbuflen);
+			fprintf(stderr,"\n%s   %s  %i %i\n",tmp->rbuf,msgt,tmp->rbuflen,mlen);
+		}
+		tmp=tmp->next;
+	}
+}
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
 {
@@ -295,6 +347,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 		xmpp_stanza_release(query);
 
 		xmpp_handler_add(conn, presence_handler, NULL, "presence", NULL, ctx);
+		xmpp_handler_add(conn, message_handler, NULL, "message", "chat", ctx);
 		xmpp_handler_add(conn, xmpp_connection_handle_reply, "get:iq:roster1", "iq",NULL, ctx);
 		xmpp_id_handler_add(conn, xmpp_connection_handle_reply, "roster1", ctx);
 
@@ -374,10 +427,6 @@ void *fuse_thread(void *arg)
 
 int main(int argc, char *argv[])
 {
-	rbuf = (char *)malloc(1024);
-	wbuf = (char *)malloc(1024);
-	rbuflen = wbuflen = 1024;
-
 	xmpp_status=0;
 	pthread_t xmpp_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
