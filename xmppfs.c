@@ -13,8 +13,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-#include "/root/libstrophe-1.0.0/src/common.h"
+#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+//#include "/root/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -67,7 +67,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	//	return -ENOENT;
 	
 	fstat->st_nlink=1;
-	fstat->st_mode=S_IFREG | 0700;
+	fstat->st_mode=S_IFREG | 0666;
 	/*char t[40];
 	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
 	system(t);*/	
@@ -77,7 +77,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	{
 		if (strncmp(tmp->jid,filename+1,strlen(filename)-1) == 0 && tmp->stamp != NULL)
 		{
-		fprintf(stderr,"\n%s     %s  %s\n",tmp->jid,filename,tmp->stamp);
+		//fprintf(stderr,"\n%s     %s  %s\n",tmp->jid,filename,tmp->stamp);
 			substr=(char *)malloc(5);
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp, 4);
@@ -162,17 +162,23 @@ static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offse
 	int len;
 	while (tmp->next != NULL)
 	{
-		if (strncpy(filename+1,tmp->jid,strlen(tmp->jid))==0)
+		fprintf(stderr,"\n%s   %s\n",tmp->jid,filename);
+		if (strncmp(filename+1,tmp->jid,strlen(tmp->jid))==0)
 		{
+			fprintf(stderr,"dupa");
 			if (tmp->rbuflen == 0) return 0;
+			fprintf(stderr,"dupa2");
 			if (tmp->rbuflen > size) len=size; else len = tmp->rbuflen;
 			strncpy(buf,tmp->rbuf,len);
 			//move data from end of the rbuf to the begining, making this way more space for write function
 			strncpy(tmp->rbuf,tmp->rbuf+len,1024-len);
+			fprintf(stderr,"%s\n",buf);
 			tmp->rbuflen-=len;
 			return len;
 		}
+		tmp=tmp->next;
 	}
+	return 0;
 }
 
 static int xmppfs_write(const char *filename, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
@@ -287,7 +293,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 		{
 			tmp->stamp=(char *)malloc(strlen(stamp));
 			strncpy(tmp->stamp,stamp,strlen(stamp));
-		fprintf(stderr," %s\n",tmp->stamp);
+		//fprintf(stderr," %s\n",tmp->stamp);
 		}
 		tmp=tmp->next;
 	}
