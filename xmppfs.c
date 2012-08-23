@@ -159,26 +159,23 @@ static int xmppfs_open(const char *filename, struct fuse_file_info *fi)
 static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
-	int len;
 	while (tmp->next != NULL)
 	{
-		fprintf(stderr,"\n%s   %s\n",tmp->jid,filename);
 		if (strncmp(filename+1,tmp->jid,strlen(tmp->jid))==0)
 		{
-			fprintf(stderr,"dupa");
-			if (tmp->rbuflen == 0) return 0;
-			fprintf(stderr,"dupa2");
-			if (tmp->rbuflen > size) len=size; else len = tmp->rbuflen;
-			strncpy(buf,tmp->rbuf,len);
+			if (tmp->rbuflen == 0) {size=0; return 0;}
+			//buf=(char *)malloc(READBUF_LEN);
+			memset(buf,0,tmp->rbuflen);
+			memcpy(buf,tmp->rbuf,tmp->rbuflen);
 			//move data from end of the rbuf to the begining, making this way more space for write function
-			strncpy(tmp->rbuf,tmp->rbuf+len,1024-len);
-			fprintf(stderr,"%s\n",buf);
-			tmp->rbuflen-=len;
-			return len;
+			fprintf(stderr,"%s  %s   %i\n",buf,tmp->rbuf,tmp->rbuflen);
+			memset(tmp->rbuf,0,READBUF_LEN);
+			size=tmp->rbuflen;
+			tmp->rbuflen=0;
 		}
 		tmp=tmp->next;
 	}
-	return 0;
+	return size;
 }
 
 static int xmppfs_write(const char *filename, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
@@ -314,20 +311,22 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 
 	while(tmp->next != NULL)
 	{
-		if (strncmp(from,tmp->jid,strlen(from)) == 0)
+//		fprintf(stderr,"xmpp: %s   %s",from,tmp->jid);
+		if (strncmp(from,tmp->jid,strlen(tmp->jid)) == 0)
 		{
 			//zwiekszanie bufora
 			msgt=xmpp_stanza_get_text(msg);
 			mlen = strlen(msgt);
-			if (mlen + tmp->rbuflen > READBUF_LEN) 
-				mlen = READBUF_LEN - tmp->rbuflen;
-			strncpy(tmp->rbuf+tmp->rbuflen,msgt,mlen);
-			tmp->rbuf+=mlen;
-			if (tmp->rbuf < READBUF_LEN) memset(tmp->rbuf+tmp->rbuflen,0,READBUF_LEN-tmp->rbuflen);
-			fprintf(stderr,"\n%s   %s  %i %i\n",tmp->rbuf,msgt,tmp->rbuflen,mlen);
+			if (mlen  > READBUF_LEN) 
+				mlen = READBUF_LEN;
+			memset(tmp->rbuf,0,READBUF_LEN);
+			strncpy(tmp->rbuf,msgt,mlen);
+			tmp->rbuflen=mlen;
+//			fprintf(stderr,"\n%s   %s  %i %i\n",tmp->rbuf,msgt,tmp->rbuflen,mlen);
 		}
 		tmp=tmp->next;
 	}
+	free(msgt);
 }
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
