@@ -13,8 +13,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-//#include "/root/libstrophe-1.0.0/src/common.h"
+//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+#include "/root/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -156,8 +156,9 @@ static int xmppfs_open(const char *filename, struct fuse_file_info *fi)
 	return 0;
 }
 
-static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+static int xmppfs_read(const char *filename, char *buf, size_t len, off_t offset, struct fuse_file_info *fi)
 {
+	int size=1;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 	while (tmp->next != NULL)
 	{
@@ -165,16 +166,20 @@ static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offse
 		{
 			if (tmp->rbuflen == 0) {size=0; return 0;}
 			//buf=(char *)malloc(READBUF_LEN);
-			memset(buf,0,tmp->rbuflen);
-			memcpy(buf,tmp->rbuf,tmp->rbuflen);
+			memset(buf,0,len);
+			strncpy(buf,tmp->rbuf,tmp->rbuflen);
+			memset(buf+tmp->rbuflen,"\n",1);
 			//move data from end of the rbuf to the begining, making this way more space for write function
-			fprintf(stderr,"%s  %s   %i\n",buf,tmp->rbuf,tmp->rbuflen);
+	//		fprintf(stderr,"%s  %s   %i %i  %i\n",buf,tmp->rbuf,tmp->rbuflen,len,size);
 			memset(tmp->rbuf,0,READBUF_LEN);
+	//		fprintf(stderr,"%s  %s   %i %i\n",buf,tmp->rbuf,tmp->rbuflen,size);
 			size=tmp->rbuflen;
 			tmp->rbuflen=0;
+	//		fprintf(stderr,"%s  %s   %i %i\n",buf,tmp->rbuf,tmp->rbuflen,size);
 		}
 		tmp=tmp->next;
 	}
+	fprintf(stderr,"%i %s\n",size,buf);
 	return size;
 }
 
