@@ -62,6 +62,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	
 	fstat->st_nlink=1;
 	fstat->st_mode=S_IFREG | 0666;
+	fstat->st_size=0;
 
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
@@ -69,6 +70,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 	{
 		if (strncmp(tmp->jid,filename+1,strlen(filename)-1) == 0 && tmp->stamp != NULL)
 		{
+			fstat->st_size=tmp->rbuflen;
 			substr=(char *)malloc(5);
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp, 4);
@@ -121,7 +123,7 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 
 	while (tmp->next != NULL)
 	{
-		filler(buf, tmp->jid + 1, NULL, 0);
+		filler(buf, tmp->jid , NULL, 0);
 		tmp=tmp->next;
 	}
 
@@ -134,7 +136,7 @@ static int xmppfs_open(const char *filename, struct fuse_file_info *fi)
 	return 0;
 }
 
-/*static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
 			fprintf(stderr,"%i %s %i\n \n",size, buf, (int) offset);
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
@@ -157,25 +159,6 @@ static int xmppfs_open(const char *filename, struct fuse_file_info *fi)
 		tmp=tmp->next;
 	}
 	return -1;
-}*/
-
-static const char *hello_str = "Hello World!\n";
-
-static int xmppfs_read(const char *path, char *buf, size_t size, off_t offset,
-		      struct fuse_file_info *fi)
-{
-	size_t len;
-	(void) fi;
-
-	len = strlen(hello_str);
-	if (offset < len) {
-		if (offset + size > len)
-			size = len - offset;
-		memcpy(buf, hello_str + offset, size);
-	} else
-		size = 0;
-
-	return size;
 }
 
 
