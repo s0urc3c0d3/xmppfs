@@ -13,8 +13,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-#include "/root/libstrophe-1.0.0/src/common.h"
+#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+//#include "/root/libstrophe-1.0.0/src/common.h"
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -60,24 +60,15 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 		return res;
 	}
 	
-	//no_root_slash=filename+1;
-	//next_slash=strchr(no_root_slash,"/");
-		
-	//if (next_slash != NULL)
-	//	return -ENOENT;
-	
 	fstat->st_nlink=1;
 	fstat->st_mode=S_IFREG | 0666;
-	/*char t[40];
-	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
-	system(t);*/	
+
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	while(tmp->next != NULL )
 	{
 		if (strncmp(tmp->jid,filename+1,strlen(filename)-1) == 0 && tmp->stamp != NULL)
 		{
-		//fprintf(stderr,"\n%s     %s  %s\n",tmp->jid,filename,tmp->stamp);
 			substr=(char *)malloc(5);
 			memset(substr,0,5);
 			strncpy(substr, tmp->stamp, 4);
@@ -106,13 +97,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 
 			tmp_time->tm_isdst = -1;
 			
-//			char *s;
-//			sprintf(s,"echo %s %i %i %i %i %i %i > /root/dupa5",tmp->stamp,tmp_time->tm_year,tmp_time->tm_mon,tmp_time->tm_mday,tmp_time->tm_hour,tmp_time->tm_min,tmp_time->tm_sec);
-//			system(s);
 			time_of_presence = mktime(tmp_time);
-/*//	char *d;
-//	sprintf(d,"echo %i %i %s>> /root/dupa",time_of_presence,tmp_time->tm_year,tmp->jid);
-//	system(d);*/
 			fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
 		}
 		tmp=tmp->next;
@@ -132,19 +117,12 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
-	//return 0;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	//if (tmp->next != NULL) system("echo null found! > /root/dupa");
-
-	//char *s;
 	while (tmp->next != NULL)
 	{
-		//sprintf(s,"echo %s >> /dupa/root3",tmp->jid);
-		//system(s);
-		filler(buf, tmp->jid, NULL, 0);
+		filler(buf, tmp->jid + 1, NULL, 0);
 		tmp=tmp->next;
-		
 	}
 
 	return 0;
@@ -156,43 +134,61 @@ static int xmppfs_open(const char *filename, struct fuse_file_info *fi)
 	return 0;
 }
 
-static int xmppfs_read(const char *filename, char *buf, size_t len, off_t offset, struct fuse_file_info *fi)
+/*static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-	int size=1;
+			fprintf(stderr,"%i %s %i\n \n",size, buf, (int) offset);
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 	while (tmp->next != NULL)
 	{
 		if (strncmp(filename+1,tmp->jid,strlen(tmp->jid))==0)
 		{
-			if (tmp->rbuflen == 0) {size=0; return 0;}
-			//buf=(char *)malloc(READBUF_LEN);
-			memset(buf,0,len);
-			strncpy(buf,tmp->rbuf,tmp->rbuflen);
-			memset(buf+tmp->rbuflen,"\n",1);
-			//move data from end of the rbuf to the begining, making this way more space for write function
-	//		fprintf(stderr,"%s  %s   %i %i  %i\n",buf,tmp->rbuf,tmp->rbuflen,len,size);
-			memset(tmp->rbuf,0,READBUF_LEN);
-	//		fprintf(stderr,"%s  %s   %i %i\n",buf,tmp->rbuf,tmp->rbuflen,size);
-			size=tmp->rbuflen;
-			tmp->rbuflen=0;
-	//		fprintf(stderr,"%s  %s   %i %i\n",buf,tmp->rbuf,tmp->rbuflen,size);
+			if (tmp->rbuflen > 0) {
+				memset(buf,0,tmp->rbuflen+1);
+				memcpy(buf,tmp->rbuf,tmp->rbuflen);
+				//move data from end of the rbuf to the begining, making this way more space for write function
+				memset(tmp->rbuf,0,READBUF_LEN);
+				size=tmp->rbuflen;
+				tmp->rbuflen=0;
+				fprintf(stderr,"%i %s\n",size,buf);
+			}
+			else size = 0;
+			return size;
 		}
 		tmp=tmp->next;
 	}
-	fprintf(stderr,"%i %s\n",size,buf);
+	return -1;
+}*/
+
+static const char *hello_str = "Hello World!\n";
+
+static int xmppfs_read(const char *path, char *buf, size_t size, off_t offset,
+		      struct fuse_file_info *fi)
+{
+	size_t len;
+	(void) fi;
+
+	len = strlen(hello_str);
+	if (offset < len) {
+		if (offset + size > len)
+			size = len - offset;
+		memcpy(buf, hello_str + offset, size);
+	} else
+		size = 0;
+
 	return size;
 }
 
-static int xmppfs_write(const char *filename, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
-{
-	
-}
 
-static int xmppfs_release(const char *filename, struct fuse_file_info *fi)
+/*static int xmppfs_write(const char *filename, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{
+	return -1;	
+}*/
+
+/*static int xmppfs_release(const char *filename, struct fuse_file_info *fi)
 {
 	//this function is required by VFS. But it always in xmppfs return 0
 	return 0;
-}
+}*/
 
 
 static struct fuse_operations xmppfs = {
@@ -200,8 +196,8 @@ static struct fuse_operations xmppfs = {
 	.readdir = xmppfs_readdir,
 	.open = xmppfs_open,
 	.read = xmppfs_read,
-	.write = xmppfs_write,
-	.release = xmppfs_release
+//	.write = xmppfs_write,
+//	.release = xmppfs_release,
 };
 
 //  XMPP_part
@@ -209,7 +205,7 @@ static struct fuse_operations xmppfs = {
 pthread_t thread1;
 
 struct xmpp_thread_arg  {
-	struct xmpp_conn_t *conn;
+	xmpp_conn_t *conn;
 	struct xmpp_ctx_t *ctx;
 };
 
@@ -221,6 +217,7 @@ void *xmpp_communication(void *args)
 	struct xmpp_ctx_t *ctx = arg->ctx;
 	struct xmpp_conn_t *conn = arg->conn;
 */
+	return 0;
 }
 
 int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
@@ -261,7 +258,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 		}
 	}
 
-	struct xmpp_thread_arg *args = (struct xmpp_thread_args *) malloc(sizeof(struct xmpp_thread_arg));
+	struct xmpp_thread_arg *args = (struct xmpp_thread_arg *)malloc(sizeof(struct xmpp_thread_arg));
 	args->ctx=(struct xmpp_ctx_t *)userdata;
 	args->conn=conn;
 
@@ -299,11 +296,13 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 		}
 		tmp=tmp->next;
 	}
+	return 0;
 }
+
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	xmpp_stanza_t *x;
-	char *from, *msg, *msgt=(char *)malloc(1024);
+	char *from, *msgt=(char *)malloc(1024);
+	xmpp_stanza_t *msg;
 	int mlen;
 	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
@@ -332,6 +331,7 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 		tmp=tmp->next;
 	}
 	free(msgt);
+	return 0;
 }
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
@@ -402,15 +402,13 @@ void *xmpp_thread_main(void *args)
 
 
 	xmpp_run(ctx);
-	//struct _xmpp_contact_list *tt = &xmpp_contact_list;
-	//if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
 
 	xmpp_conn_release(conn);
 	xmpp_ctx_free(ctx);
 
 	xmpp_shutdown();
 
-
+	return 0;
 }
 
 static struct fuse_server {
@@ -423,9 +421,6 @@ static struct fuse_server {
 void *fuse_thread(void *arg)
 {
 	if(arg) {}
-
-	struct fuse *f=fs.fuse;
-	//if (f == NULL) fprintf(stderr,"dupa");
 	if(fuse_loop(fs.fuse) < 0) {
 		perror("fuse_loop");
 		fs.failed = 1;
@@ -440,31 +435,18 @@ int main(int argc, char *argv[])
 	xmpp_status=0;
 	pthread_t xmpp_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
-	//pthread_t fthread;
-	//struct fuse_args_xmpp *args;
-	//args = (struct fuse_args_xmpp *)malloc(sizeof(struct fuse_args_xmpp));
-	//args->argc=argc;
-	//args->argv=(char[] *) malloc(sizeof(argv));
-	//memcpy(args->argv,argv,sizeof(argv));
-	//pthread_create(&fthread,NULL,fuse_pthread,args);
-
 	//int r =  fuse_main(argc, argv, &xmppfs, NULL);
 	
 	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
 
 	const char *mountpoint = "/mnt";
 
-	fprintf(stderr,"%s\n",mountpoint);
-	
 	fs.ch = fuse_mount(mountpoint, &args);
 
 	fs.fuse = fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
 	pthread_create(&fs.pid, NULL, fuse_thread, NULL);
 
-//	system ("echo > /root/dupa4");
-
 	void *status;
 	pthread_join(xmpp_thread,&status);
-	//system ("echo a > /root/dupa4");
-	
+	return 0;
 }
