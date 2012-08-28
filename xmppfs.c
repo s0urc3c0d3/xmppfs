@@ -4,6 +4,7 @@
 #define READBUF_LEN 1024
 #define WRITEBUF_LEN 1024
 
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fuse/fuse.h>
@@ -18,6 +19,22 @@
 
 xmpp_ctx_t *ctx_new;
 xmpp_conn_t *conn_new;
+
+struct _xmppfs_args {
+	char *jid;
+	char *pass;
+	char *mount;
+	int port;
+	char *host;
+};
+
+struct _xmppfs_args xmppfs_args = {
+	.jid = NULL,
+	.pass = NULL,
+	.mount = NULL,
+	.port = 0,
+	.host = NULL,
+};
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -226,6 +243,11 @@ static int xmppfs_release(const char *filename, struct fuse_file_info *fi)
 	return 0;
 }
 
+static int xmppfs_truncate (const char *filename, off_t size)
+{
+	//just for echo test > /path/jid to work
+	return 0;
+}
 
 static struct fuse_operations xmppfs = {
 	.getattr = xmppfs_getattr,
@@ -233,7 +255,8 @@ static struct fuse_operations xmppfs = {
 	.open = xmppfs_open,
 	.read = xmppfs_read,
 	.write = xmppfs_write,
-	.release = xmppfs_release
+	.release = xmppfs_release,
+	.truncate = xmppfs_truncate,
 };
 
 //  XMPP_part
@@ -411,10 +434,10 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 void *xmpp_thread_main(void *args)
 {
 
-	char *user_jid="tester@example.jabber.com/debian";
-	char *user_pass="tester";
+	//char *user_jid="tester@example.jabber.com/debian";
+	//char *user_pass="tester";
 	char *host="example.jabber.com";
-	int port = 5222;
+	//int port = 5222;
 
 	xmpp_initialize();
 
@@ -431,10 +454,10 @@ void *xmpp_thread_main(void *args)
 
 	conn_new=conn;
 
-	xmpp_conn_set_jid(conn,user_jid);
-	xmpp_conn_set_pass(conn,user_pass);
+	xmpp_conn_set_jid(conn,xmppfs_args.jid);
+	xmpp_conn_set_pass(conn,xmppfs_args.pass);
 
-	xmpp_connect_client(conn, host, port, xmpp_connection_handler, ctx);
+	xmpp_connect_client(conn, host, 5222, xmpp_connection_handler, ctx);
 
 
 	xmpp_run(ctx);
@@ -476,6 +499,41 @@ int main(int argc, char *argv[])
 	xmpp_status=0;
 	pthread_t xmpp_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
+
+	int next_option=0;
+	char *line,z;
+	const char* const short_options="hj:p:m:";
+	const struct option long_options[]={
+		{"help",        0,NULL,'h'},
+		{"jid",		1,NULL,'j'},
+		{"pass",	1,NULL,'p'},
+		{"mount",	1,NULL,'m'},
+		{NULL,          0,NULL,0}
+	};
+	while (next_option !=-1) {
+		next_option=getopt_long(argc,argv,short_options, long_options,NULL);
+		switch (next_option)
+		{
+			case 'h':
+				//usage(0);
+				break;
+			
+			case 'j':
+				xmppfs_args.jid = (char *)malloc(strlen(optarg));
+				strcpy(xmppfs_args.jid,optarg);
+				break;
+
+			case 'p':
+				xmppfs_args.pass = (char *)malloc(strlen(optarg));
+				strcpy(xmppfs_args.pass,optarg);
+				break;
+			case 'm':
+				xmppfs_args.mount = (char *)malloc(strlen(optarg));
+				strcpy(xmppfs_args.mount,optarg);
+				break;
+		}
+	}
+
 	//pthread_t fthread;
 	//struct fuse_args_xmpp *args;
 	//args = (struct fuse_args_xmpp *)malloc(sizeof(struct fuse_args_xmpp));
@@ -488,11 +546,9 @@ int main(int argc, char *argv[])
 	
 	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
 
-	const char *mountpoint = "/mnt";
-
-	fprintf(stderr,"%s\n",mountpoint);
+	if (xmppfs_args.mount == NULL || xmppfs_args.jid == NULL || xmppfs_args.pass == NULL) return 1;
 	
-	fs.ch = fuse_mount(mountpoint, &args);
+	fs.ch = fuse_mount(xmppfs_args.mount, &args);
 
 	fs.fuse = fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
 	pthread_create(&fs.pid, NULL, fuse_thread, NULL);
