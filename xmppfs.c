@@ -13,8 +13,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-//#include "/root/libstrophe-1.0.0/src/common.h"
+//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+#include "/root/libstrophe-1.0.0/src/common.h"
+
+xmpp_ctx_t *ctx_new;
+xmpp_conn_t *conn_new;
 
 struct _xmpp_contact_list {
 	char *jid;
@@ -170,7 +173,7 @@ static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offse
 			memset(buf,0,tmp->rbuflen);
 			memcpy(buf,tmp->rbuf,tmp->rbuflen);
 			//move data from end of the rbuf to the begining, making this way more space for write function
-			fprintf(stderr,"%s  %s   %i\n",buf,tmp->rbuf,tmp->rbuflen);
+//			fprintf(stderr,"%s  %s   %i\n",buf,tmp->rbuf,tmp->rbuflen);
 			memset(tmp->rbuf,0,READBUF_LEN);
 			size=tmp->rbuflen;
 			tmp->rbuflen=0;
@@ -182,7 +185,39 @@ static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offse
 
 static int xmppfs_write(const char *filename, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-	
+	int s = strlen(filename)-1;
+	char *replytext, *jid = (char *)malloc(s);
+	strncpy(jid,filename+1,s);
+	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
+	while(tmp->next != NULL)
+	{
+		if (strncmp(jid,tmp->jid,s) == 0)
+		{
+			xmpp_stanza_t *reply, *body, *text;
+			reply = xmpp_stanza_new(ctx_new);
+			xmpp_stanza_set_name(reply, "message");
+			xmpp_stanza_set_type(reply, "chat");
+			xmpp_stanza_set_attribute(reply, "to", jid);
+
+			body = xmpp_stanza_new(ctx_new);
+			xmpp_stanza_set_name(body, "body");
+
+			replytext = malloc(size);
+			strcpy(replytext, buf);
+
+			text = xmpp_stanza_new(ctx_new);
+			xmpp_stanza_set_text(text, replytext);
+			xmpp_stanza_add_child(body, text);
+			xmpp_stanza_add_child(reply, body);
+
+			xmpp_send(conn_new, reply);
+			xmpp_stanza_release(reply);
+			free(replytext);
+			return size;
+		}
+		tmp=tmp->next;
+	}
+	return 0;
 }
 
 static int xmppfs_release(const char *filename, struct fuse_file_info *fi)
@@ -389,8 +424,12 @@ void *xmpp_thread_main(void *args)
 	xmpp_ctx_t *ctx;
 	ctx = xmpp_ctx_new(NULL, log);
 
+	ctx_new=ctx;
+
 	xmpp_conn_t *conn;
 	conn = xmpp_conn_new(ctx);
+
+	conn_new=conn;
 
 	xmpp_conn_set_jid(conn,user_jid);
 	xmpp_conn_set_pass(conn,user_pass);
