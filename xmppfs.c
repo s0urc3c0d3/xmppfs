@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <string.h>
 //#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-#include "/root/libstrophe-1.0.0/src/common.h"
+#include "/root/libstrophe/src/common.h"
 
 xmpp_ctx_t *ctx_new;
 xmpp_conn_t *conn_new;
@@ -32,7 +32,7 @@ struct _xmppfs_args xmppfs_args = {
 	.jid = NULL,
 	.pass = NULL,
 	.mount = NULL,
-	.port = 0,
+	.port = 5222,
 	.host = NULL,
 };
 
@@ -64,13 +64,10 @@ struct fuse_args_xmpp {
 static int xmppfs_getattr(const char *filename, struct stat *fstat)
 {
 
-	//fstat = (struct stat *)malloc(sizeof(struct stat));
-
 	int res = 0;
-	char /**no_root_slash,*next_slash,*/ *substr;
+	char  *substr;
 	struct tm *tmp_time;
 	time_t time_of_presence;
-//system("echo dupa > /root/dupa");	
 	
 	memset(fstat,0,sizeof(struct stat));
 	if (!strcmp(filename,"/"))
@@ -80,25 +77,15 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 		return res;
 	}
 	
-	//no_root_slash=filename+1;
-	//next_slash=strchr(no_root_slash,"/");
-		
-	//if (next_slash != NULL)
-	//	return -ENOENT;
-	
 	fstat->st_nlink=1;
 	fstat->st_mode=S_IFREG | 0666;
 	fstat->st_size=0;
-	/*char t[40];
-	sprintf(t,"echo '%s %i dupa' >> /root/dupa",filename,strlen(filename));
-	system(t);*/	
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	while(tmp->next != NULL )
 	{
 		if (strncmp(tmp->jid,filename+1,strlen(filename)-1) == 0 && tmp->stamp != NULL)
 		{
-		//fprintf(stderr,"\n%s     %s  %s\n",tmp->jid,filename,tmp->stamp);
 			fstat->st_size=tmp->rbuflen;
 			substr=(char *)malloc(5);
 			memset(substr,0,5);
@@ -128,13 +115,7 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 
 			tmp_time->tm_isdst = -1;
 			
-//			char *s;
-//			sprintf(s,"echo %s %i %i %i %i %i %i > /root/dupa5",tmp->stamp,tmp_time->tm_year,tmp_time->tm_mon,tmp_time->tm_mday,tmp_time->tm_hour,tmp_time->tm_min,tmp_time->tm_sec);
-//			system(s);
 			time_of_presence = mktime(tmp_time);
-/*//	char *d;
-//	sprintf(d,"echo %i %i %s>> /root/dupa",time_of_presence,tmp_time->tm_year,tmp->jid);
-//	system(d);*/
 			fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
 		}
 		tmp=tmp->next;
@@ -154,16 +135,10 @@ static int xmppfs_readdir(const char *dirname, void *buf, fuse_fill_dir_t filler
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	
-	//return 0;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
-	//if (tmp->next != NULL) system("echo null found! > /root/dupa");
-
-	//char *s;
 	while (tmp->next != NULL)
 	{
-		//sprintf(s,"echo %s >> /dupa/root3",tmp->jid);
-		//system(s);
 		filler(buf, tmp->jid, NULL, 0);
 		tmp=tmp->next;
 		
@@ -186,11 +161,8 @@ static int xmppfs_read(const char *filename, char *buf, size_t size, off_t offse
 		if (strncmp(filename+1,tmp->jid,strlen(tmp->jid))==0)
 		{
 			if (tmp->rbuflen == 0) {size=0; return 0;}
-			//buf=(char *)malloc(READBUF_LEN);
 			memset(buf,0,tmp->rbuflen);
 			memcpy(buf,tmp->rbuf,tmp->rbuflen);
-			//move data from end of the rbuf to the begining, making this way more space for write function
-//			fprintf(stderr,"%s  %s   %i\n",buf,tmp->rbuf,tmp->rbuflen);
 			memset(tmp->rbuf,0,READBUF_LEN);
 			size=tmp->rbuflen;
 			tmp->rbuflen=0;
@@ -276,6 +248,7 @@ void *xmpp_communication(void *args)
 	struct xmpp_ctx_t *ctx = arg->ctx;
 	struct xmpp_conn_t *conn = arg->conn;
 */
+	return 0;
 }
 
 int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
@@ -304,7 +277,6 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 				tmp->wbuflen=0;
 				tmp->rbuf=(char *)malloc(READBUF_LEN);
 				tmp->wbuf=(char *)malloc(WRITEBUF_LEN);
-				//fprintf(stderr,"%s %i %i",tmp->jid,strlen(tmp->jid),strlen(jid));
 				if ((name = xmpp_stanza_get_attribute(item, "name")))
 				{	
 					tmp->name = (char *)malloc(strlen(name));
@@ -316,9 +288,10 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 		}
 	}
 
-	struct xmpp_thread_arg *args = (struct xmpp_thread_args *) malloc(sizeof(struct xmpp_thread_arg));
+	struct xmpp_thread_arg *args = (struct xmpp_thread_arg *) malloc(sizeof(struct xmpp_thread_arg));
 	args->ctx=(struct xmpp_ctx_t *)userdata;
-	args->conn=conn;
+	args->conn=(struct xmpp_conn_t *)malloc(sizeof(xmpp_conn_t));
+	memcpy(args->conn,conn,sizeof(xmpp_conn_t));
 
 	pthread_create( &thread1, NULL, xmpp_communication, args);
 	pthread_join( thread1, NULL);
@@ -332,35 +305,32 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 {
 	xmpp_stanza_t *x;
 	char *from, *stamp;
-	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	if(!xmpp_stanza_get_child_by_name(stanza, "x")) return 1;
 	if(!xmpp_stanza_get_attribute(stanza, "from")) return 1;
 
-	//x = xmpp_stanza_get_text(xmpp_stanza_get_child_by_name(stanza, "x"));
 	x = xmpp_stanza_get_child_by_name(stanza, "x");
 	stamp = xmpp_stanza_get_attribute(x, "stamp");
 	from = xmpp_stanza_get_attribute(stanza, "from");
-// added second condition to while - tmp_jid != NULL because sometimes segfault was raised
-	while (tmp->next != NULL) // && tmp->jid != NULL)
+	while (tmp->next != NULL)
 	{
 		
 		if (strncmp(tmp->jid,from,strlen(from)))
 		{
 			tmp->stamp=(char *)malloc(strlen(stamp));
 			strncpy(tmp->stamp,stamp,strlen(stamp));
-		//fprintf(stderr," %s\n",tmp->stamp);
 		}
 		tmp=tmp->next;
 	}
+	return 0;
 }
+
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	xmpp_stanza_t *x;
-	char *from, *msg, *msgt=(char *)malloc(1024);
+	char *from, *msgt=(char *)malloc(1024);
+	xmpp_stanza_t *msg;
 	int mlen;
-	//xmpp_ctx_t *ctx = (xmpp_ctx_t*)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	if(!xmpp_stanza_get_child_by_name(stanza, "body")) return 1;
@@ -371,7 +341,6 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 
 	while(tmp->next != NULL)
 	{
-//		fprintf(stderr,"xmpp: %s   %s",from,tmp->jid);
 		if (strncmp(from,tmp->jid,strlen(tmp->jid)) == 0)
 		{
 			//zwiekszanie bufora
@@ -382,11 +351,11 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 			memset(tmp->rbuf,0,READBUF_LEN);
 			strncpy(tmp->rbuf,msgt,mlen);
 			tmp->rbuflen=mlen;
-//			fprintf(stderr,"\n%s   %s  %i %i\n",tmp->rbuf,msgt,tmp->rbuflen,mlen);
 		}
 		tmp=tmp->next;
 	}
 	free(msgt);
+	return 0;
 }
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
@@ -433,12 +402,6 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 void *xmpp_thread_main(void *args)
 {
-
-	//char *user_jid="tester@example.jabber.com/debian";
-	//char *user_pass="tester";
-	char *host="example.jabber.com";
-	//int port = 5222;
-
 	xmpp_initialize();
 
 	xmpp_log_t *log;
@@ -457,19 +420,17 @@ void *xmpp_thread_main(void *args)
 	xmpp_conn_set_jid(conn,xmppfs_args.jid);
 	xmpp_conn_set_pass(conn,xmppfs_args.pass);
 
-	xmpp_connect_client(conn, host, 5222, xmpp_connection_handler, ctx);
+	xmpp_connect_client(conn, xmppfs_args.host, xmppfs_args.port, xmpp_connection_handler, ctx);
 
 
 	xmpp_run(ctx);
-	//struct _xmpp_contact_list *tt = &xmpp_contact_list;
-	//if (tt != NULL && tt->jid != NULL) fprintf(stderr,"%s %s",tt->jid,tt->next->jid);
 
 	xmpp_conn_release(conn);
 	xmpp_ctx_free(ctx);
 
 	xmpp_shutdown();
 
-
+	return 0;
 }
 
 static struct fuse_server {
@@ -483,8 +444,6 @@ void *fuse_thread(void *arg)
 {
 	if(arg) {}
 
-	struct fuse *f=fs.fuse;
-	//if (f == NULL) fprintf(stderr,"dupa");
 	if(fuse_loop(fs.fuse) < 0) {
 		perror("fuse_loop");
 		fs.failed = 1;
@@ -494,6 +453,17 @@ void *fuse_thread(void *arg)
 	return NULL;
 }
 
+void usage()
+{
+	printf("xmppfs [-h] [-r PORT] -j JID -p PASS help -m MOUNTPOINT -o HOST\n");
+	printf("--help  -h	          This message\n");
+	printf("--jid   -j JID            Set JID in format: login@FQDN/RESOURCE\n");
+	printf("--pass  -p PASS           Set password\n");
+	printf("--mount -m MOUNTPOINT     Set mount point\n");
+	printf("--host  -h HOST           Set FQDN of server (this can be different from FQDN in JID\n");
+	printf("--port  -p PORT           Set server port (default 5222)\n");
+}
+
 int main(int argc, char *argv[])
 {
 	xmpp_status=0;
@@ -501,13 +471,14 @@ int main(int argc, char *argv[])
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
 
 	int next_option=0;
-	char *line,z;
-	const char* const short_options="hj:p:m:";
+	const char* const short_options="hj:p:m:o:r:";
 	const struct option long_options[]={
 		{"help",        0,NULL,'h'},
 		{"jid",		1,NULL,'j'},
 		{"pass",	1,NULL,'p'},
 		{"mount",	1,NULL,'m'},
+		{"host",	1,NULL,'o'},
+		{"port",	1,NULL,'r'},
 		{NULL,          0,NULL,0}
 	};
 	while (next_option !=-1) {
@@ -515,7 +486,7 @@ int main(int argc, char *argv[])
 		switch (next_option)
 		{
 			case 'h':
-				//usage(0);
+				usage();
 				break;
 			
 			case 'j':
@@ -531,32 +502,31 @@ int main(int argc, char *argv[])
 				xmppfs_args.mount = (char *)malloc(strlen(optarg));
 				strcpy(xmppfs_args.mount,optarg);
 				break;
+			case 'o':
+				xmppfs_args.host = (char *)malloc(strlen(optarg));
+				strncpy(xmppfs_args.host,optarg,strlen(optarg));
+				break;
+			case 'r':
+				xmppfs_args.port=(int) optarg;
+				break;
 		}
 	}
 
-	//pthread_t fthread;
-	//struct fuse_args_xmpp *args;
-	//args = (struct fuse_args_xmpp *)malloc(sizeof(struct fuse_args_xmpp));
-	//args->argc=argc;
-	//args->argv=(char[] *) malloc(sizeof(argv));
-	//memcpy(args->argv,argv,sizeof(argv));
-	//pthread_create(&fthread,NULL,fuse_pthread,args);
-
-	//int r =  fuse_main(argc, argv, &xmppfs, NULL);
-	
 	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
 
-	if (xmppfs_args.mount == NULL || xmppfs_args.jid == NULL || xmppfs_args.pass == NULL) return 1;
+	if (xmppfs_args.mount == NULL || xmppfs_args.jid == NULL || xmppfs_args.pass == NULL || xmppfs_args.host == NULL) 
+	{
+		usage();
+		return 1;
+	}
 	
 	fs.ch = fuse_mount(xmppfs_args.mount, &args);
 
 	fs.fuse = fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
 	pthread_create(&fs.pid, NULL, fuse_thread, NULL);
 
-//	system ("echo > /root/dupa4");
 
 	void *status;
 	pthread_join(xmpp_thread,&status);
-	//system ("echo a > /root/dupa4");
-	
+	return 0;
 }
