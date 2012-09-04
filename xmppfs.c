@@ -4,6 +4,7 @@
 #define READBUF_LEN 1024
 #define WRITEBUF_LEN 1024
 
+#include <unistd.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -531,8 +532,11 @@ int main(int argc, char *argv[])
 	fs.fuse = fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
 	pthread_create(&fs.pid, NULL, fuse_thread, NULL);
 
+	while(!fs.failed) {
+		sleep(1);
+	}
 
-	void *status;
-	pthread_join(xmpp_thread,&status);
+//	void *status;
+//	pthread_join(xmpp_thread,&status);
 	return 0;
 }
