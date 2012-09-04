@@ -28,6 +28,13 @@ struct _xmppfs_args {
 	char *host;
 };
 
+static struct fuse_server {
+	pthread_t pid;
+	struct fuse *fuse;
+	struct fuse_chan *ch;
+	int failed;
+} fs;
+
 struct _xmppfs_args xmppfs_args = {
 	.jid = NULL,
 	.pass = NULL,
@@ -253,6 +260,8 @@ void *xmpp_communication(void *args)
 
 int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
+	xmpp_ctx_t *ctx=(xmpp_ctx_t *)userdata;
+	if (fs.failed) xmpp_stop(ctx);
 	xmpp_stanza_t *query, *item;
 	char *type, *name, *jid;
 
@@ -303,6 +312,8 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 					
 int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
+	xmpp_ctx_t *ctx=(xmpp_ctx_t *)userdata;
+	if (fs.failed) xmpp_stop(ctx);
 	xmpp_stanza_t *x;
 	char *from, *stamp;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
@@ -328,6 +339,8 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
+	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
+	if (fs.failed) xmpp_stop(ctx);
 	char *from, *msgt=(char *)malloc(1024);
 	xmpp_stanza_t *msg;
 	int mlen;
@@ -363,6 +376,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
 	xmpp_stanza_t *iq, *query, *pres;
 
+	if (fs.failed) xmpp_stop(ctx);
 	if (status == XMPP_CONN_CONNECT) {
 		fprintf(stderr, "DEBUG: connected\n");
 
@@ -433,13 +447,6 @@ void *xmpp_thread_main(void *args)
 	return 0;
 }
 
-static struct fuse_server {
-	pthread_t pid;
-	struct fuse *fuse;
-	struct fuse_chan *ch;
-	int failed;
-} fs;
-
 void *fuse_thread(void *arg)
 {
 	if(arg) {}
@@ -448,7 +455,6 @@ void *fuse_thread(void *arg)
 		perror("fuse_loop");
 		fs.failed = 1;
 	}
-	fprintf(stderr,"dupa2");
 	//fuse_destroy(fs.fuse);
 	return NULL;
 }
