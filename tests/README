@@ -1,0 +1,14 @@
+Tests for xmppfs:
+
+To add Your own test please create script in format NN_NAME.sh. Where NN is a two digit number. NAME is given by your choice. Your tests should be given high numbers soo normal tests will perform normaly. I assume you may want to test your own modification. If you decide to send patch to me I will require in the future the results of my own tests and later your own. I need to be sure that core functionality is stable.
+
+To run tests run startTests.sh
+
+You script can run anything - including programs.
+
+
+Environment:
+
+startTests.sh sets this variables (this may grow in time):
+XMPPFS_PATH=`pwd`/../xmppfs
+TEST_LOG=`pwd`/tests-`data +%F-%T`.log
