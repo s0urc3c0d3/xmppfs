@@ -4,6 +4,9 @@
 #define READBUF_LEN 1024
 #define WRITEBUF_LEN 1024
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <syslog.h>
 #include <signal.h>
 #include <unistd.h>
 #include <getopt.h>
@@ -511,6 +514,31 @@ int main(int argc, char *argv[])
 				break;
 		}
 	}
+
+	pid_t pid, sid;
+	pid = fork();
+	if (pid < 0) {
+		exit(EXIT_FAILURE);
+	}
+	if (pid > 0) {
+		exit(EXIT_SUCCESS);
+	}
+
+	umask(0);
+                
+                
+	sid = setsid();
+	if (sid < 0) {
+		exit(EXIT_FAILURE);
+	}
+        
+	if ((chdir("/")) < 0) {
+		exit(EXIT_FAILURE);
+	}
+        
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
 
 	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
 
