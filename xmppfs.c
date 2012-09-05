@@ -4,6 +4,7 @@
 #define READBUF_LEN 1024
 #define WRITEBUF_LEN 1024
 
+#include <signal.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -241,6 +242,7 @@ static struct fuse_operations xmppfs = {
 
 //  XMPP_part
 
+pthread_t xmpp_thread;
 pthread_t thread1;
 
 struct xmpp_thread_arg  {
@@ -261,8 +263,6 @@ void *xmpp_communication(void *args)
 
 int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	xmpp_ctx_t *ctx=(xmpp_ctx_t *)userdata;
-	if (fs.failed) xmpp_stop(ctx);
 	xmpp_stanza_t *query, *item;
 	char *type, *name, *jid;
 
@@ -313,8 +313,6 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 					
 int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	xmpp_ctx_t *ctx=(xmpp_ctx_t *)userdata;
-	if (fs.failed) xmpp_stop(ctx);
 	xmpp_stanza_t *x;
 	char *from, *stamp;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
@@ -340,8 +338,6 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
-	if (fs.failed) xmpp_stop(ctx);
 	char *from, *msgt=(char *)malloc(1024);
 	xmpp_stanza_t *msg;
 	int mlen;
@@ -377,7 +373,6 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
 	xmpp_stanza_t *iq, *query, *pres;
 
-	if (fs.failed) xmpp_stop(ctx);
 	if (status == XMPP_CONN_CONNECT) {
 		fprintf(stderr, "DEBUG: connected\n");
 
@@ -454,9 +449,8 @@ void *fuse_thread(void *arg)
 
 	if(fuse_loop(fs.fuse) < 0) {
 		perror("fuse_loop");
-		fs.failed = 1;
 	}
-	//fuse_destroy(fs.fuse);
+	fs.failed = 1;
 	return NULL;
 }
 
@@ -474,7 +468,6 @@ void usage()
 int main(int argc, char *argv[])
 {
 	xmpp_status=0;
-	pthread_t xmpp_thread;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
 
 	int next_option=0;
@@ -536,7 +529,5 @@ int main(int argc, char *argv[])
 		sleep(1);
 	}
 
-//	void *status;
-//	pthread_join(xmpp_thread,&status);
 	return 0;
 }
