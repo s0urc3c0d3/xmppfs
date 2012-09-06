@@ -470,9 +470,6 @@ void usage()
 
 int main(int argc, char *argv[])
 {
-	xmpp_status=0;
-	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
-
 	int next_option=0;
 	const char* const short_options="hj:p:m:o:r:";
 	const struct option long_options[]={
@@ -515,7 +512,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	pid_t pid, sid;
+/*	pid_t pid, sid;
 	pid = fork();
 	if (pid < 0) {
 		exit(EXIT_FAILURE);
@@ -539,6 +536,10 @@ int main(int argc, char *argv[])
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
+*/
+
+	xmpp_status=0;
+	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
 
 	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
 
@@ -548,6 +549,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
+	fprintf(stderr,"%s \n",xmppfs_args.mount);
 	fs.ch = fuse_mount(xmppfs_args.mount, &args);
 
 	fs.fuse = fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);

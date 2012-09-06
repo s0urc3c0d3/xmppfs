@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export XMPPFS_PATH=`pwd`/../xmppfs
-export TEST_LOG=`pwd`/tests-`data +%F-%T`.log
+export TEST_LOG=`pwd`/tests-`date +%F-%T`.log
 
 
 if ! [ -x $XMPPFS_PATH ];
@@ -10,7 +10,7 @@ then
 	exit 1
 fi
 
-for i in `seq -w 1 99`; 
+for i in `seq -w 0 99`; 
 do
 	for j in ${i}*;
 	do
