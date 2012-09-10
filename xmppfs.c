@@ -269,6 +269,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 	xmpp_stanza_t *query, *item;
 	char *type, *name, *jid;
 
+	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
 	struct _xmpp_contact_list *tmp;
 	tmp=&xmpp_contact_list;
 
@@ -282,9 +283,9 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 			item = xmpp_stanza_get_next(item)) {
 				
 				tmp->next = (struct _xmpp_contact_list *)malloc(sizeof(struct _xmpp_contact_list));
+				memset(tmp->next,0,sizeof (struct _xmpp_contact_list));
 				jid = xmpp_stanza_get_attribute(item, "jid");
 				tmp->jid = (char *)malloc(strlen(jid)+1);
-				memset(tmp->jid,0,strlen(jid)+1);
 				strncpy(tmp->jid,jid,strlen(jid)+1);
 				tmp->rbuflen=0;
 				tmp->wbuflen=0;
@@ -299,6 +300,11 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 				
 				tmp=tmp->next;
 		}
+		xmpp_stanza_t *pres;
+		pres = xmpp_stanza_new(ctx);
+		xmpp_stanza_set_name(pres, "presence");
+		xmpp_send(conn, pres);
+		xmpp_stanza_release(pres);
 	}
 
 	struct xmpp_thread_arg *args = (struct xmpp_thread_arg *) malloc(sizeof(struct xmpp_thread_arg));
@@ -341,6 +347,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
+	fprintf(stderr,"message \n");
 	char *from, *msgt=(char *)malloc(1024);
 	xmpp_stanza_t *msg;
 	int mlen;
@@ -354,15 +361,15 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 
 	while(tmp->next != NULL)
 	{
+			fprintf(stderr,"%s %s\n",from,tmp->jid);
 		if (strncmp(from,tmp->jid,strlen(tmp->jid)) == 0)
 		{
 			//zwiekszanie bufora
 			msgt=xmpp_stanza_get_text(msg);
 			mlen = strlen(msgt);
-			if (mlen  > READBUF_LEN) 
-				mlen = READBUF_LEN;
 			memset(tmp->rbuf,0,READBUF_LEN);
 			strncpy(tmp->rbuf,msgt,mlen);
+			fprintf(stderr,"%s\n",tmp->rbuf);
 			tmp->rbuflen=mlen;
 		}
 		tmp=tmp->next;
@@ -374,7 +381,7 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
 {
 	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
-	xmpp_stanza_t *iq, *query, *pres;
+	xmpp_stanza_t *iq, *query;
 
 	if (status == XMPP_CONN_CONNECT) {
 		fprintf(stderr, "DEBUG: connected\n");
@@ -401,12 +408,6 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 		xmpp_send(conn, iq);
 
 		xmpp_stanza_release(iq);
-
-		pres = xmpp_stanza_new(ctx);
-		xmpp_stanza_set_name(pres, "presence");
-		xmpp_send(conn, pres);
-		xmpp_stanza_release(pres);
-
 	} else {
 		fprintf(stderr, "DEBUG: disconnected\n");
 		xmpp_stop(ctx);
@@ -549,7 +550,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	fprintf(stderr,"%s \n",xmppfs_args.mount);
+	//fprintf(stderr,"%s \n",xmppfs_args.mount);
 	fs.ch = fuse_mount(xmppfs_args.mount, &args);
 
 	fs.fuse = fuse_new(fs.ch, &args, &xmppfs, sizeof(xmppfs), NULL);
