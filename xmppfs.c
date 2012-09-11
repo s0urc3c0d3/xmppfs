@@ -347,7 +347,6 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	fprintf(stderr,"message \n");
 	char *from, *msgt=(char *)malloc(1024);
 	xmpp_stanza_t *msg;
 	int mlen;
@@ -361,7 +360,6 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 
 	while(tmp->next != NULL)
 	{
-			fprintf(stderr,"%s %s\n",from,tmp->jid);
 		if (strncmp(from,tmp->jid,strlen(tmp->jid)) == 0)
 		{
 			//zwiekszanie bufora
@@ -369,7 +367,6 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 			mlen = strlen(msgt);
 			memset(tmp->rbuf,0,READBUF_LEN);
 			strncpy(tmp->rbuf,msgt,mlen);
-			fprintf(stderr,"%s\n",tmp->rbuf);
 			tmp->rbuflen=mlen;
 		}
 		tmp=tmp->next;
@@ -419,7 +416,7 @@ void *xmpp_thread_main(void *args)
 	xmpp_initialize();
 
 	xmpp_log_t *log;
-	log = xmpp_get_default_logger(XMPP_LEVEL_ERROR);
+	log = xmpp_get_default_logger(XMPP_LEVEL_DEBUG);
 
 	xmpp_ctx_t *ctx;
 	ctx = xmpp_ctx_new(NULL, log);
