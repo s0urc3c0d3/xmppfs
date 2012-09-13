@@ -198,12 +198,13 @@ static int xmppfs_write(const char *filename, const char *buf, size_t size, off_
 			reply = xmpp_stanza_new(ctx_new);
 			xmpp_stanza_set_name(reply, "message");
 			xmpp_stanza_set_type(reply, "chat");
-			xmpp_stanza_set_attribute(reply, "to", jid);
+			xmpp_stanza_set_attribute(reply, "to", tmp->jid);
 
 			body = xmpp_stanza_new(ctx_new);
 			xmpp_stanza_set_name(body, "body");
 
 			replytext = malloc(size);
+			memset(buf+(strlen(buf)-1),0,1);
 			strcpy(replytext, buf);
 
 			text = xmpp_stanza_new(ctx_new);
