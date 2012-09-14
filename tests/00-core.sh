@@ -22,7 +22,7 @@ if ! [ -d $MNT_POINT2 ]; then mkdir $MNT_POINT2; fi
 send=wiadomosc
 echo $send >> $MNT_POINT1/$JID2
 sleep 2
-#recv=$(cat $MNT_POINT2/$JID1)
+recv=$(cat $MNT_POINT2/$JID1)
 #if [ $send == $recv ];then
 #	echo takie same
 #fi

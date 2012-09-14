@@ -204,8 +204,8 @@ static int xmppfs_write(const char *filename, const char *buf, size_t size, off_
 			xmpp_stanza_set_name(body, "body");
 
 			replytext = malloc(size);
-			memset(buf+(strlen(buf)-1),0,1);
-			strcpy(replytext, buf);
+			memset(replytext,'\0',size);
+			strncpy(replytext, buf,size-1);
 
 			text = xmpp_stanza_new(ctx_new);
 			xmpp_stanza_set_text(text, replytext);
@@ -215,10 +215,12 @@ static int xmppfs_write(const char *filename, const char *buf, size_t size, off_
 			xmpp_send(conn_new, reply);
 			xmpp_stanza_release(reply);
 			free(replytext);
+			free(jid);
 			return size;
 		}
 		tmp=tmp->next;
 	}
+	free(jid);
 	return 0;
 }
 
@@ -318,7 +320,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 
 //	xmpp_disconnect(conn);
 
-	return 0;
+	return 1;
 }
 					
 int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
@@ -343,7 +345,7 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 		}
 		tmp=tmp->next;
 	}
-	return 0;
+	return 1;
 }
 
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
@@ -373,7 +375,7 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 		tmp=tmp->next;
 	}
 	free(msgt);
-	return 0;
+	return 1;
 }
 
 void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t status, const int error, xmpp_stream_error_t * const stream_error, void * const userdata)
@@ -399,7 +401,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 		xmpp_stanza_release(query);
 
 		xmpp_handler_add(conn, presence_handler, NULL, "presence", NULL, ctx);
-		xmpp_handler_add(conn, message_handler, NULL, "message", "chat", ctx);
+		xmpp_handler_add(conn, message_handler, NULL, "message", NULL, ctx);
 		xmpp_handler_add(conn, xmpp_connection_handle_reply, "get:iq:roster1", "iq",NULL, ctx);
 		xmpp_id_handler_add(conn, xmpp_connection_handle_reply, "roster1", ctx);
 
