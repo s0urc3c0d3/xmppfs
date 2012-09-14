@@ -3,7 +3,7 @@ xmppfs
 
 simple FUSE xmpp client
 
-Depedencies: libstrophe, fuse-utils libssl libexpat1 libz libresolve libcrypto
+Depedencies: libstrophe, fuse-utils libssl libexpat1 libz libresolve libcrypto libfuse-dev
 
 
 Author
