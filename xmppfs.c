@@ -19,8 +19,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-//#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-#include "/root/libstrophe/src/common.h"
+#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
+//#include "/root/libstrophe/src/common.h"
 
 xmpp_ctx_t *ctx_new;
 xmpp_conn_t *conn_new;
@@ -129,6 +129,8 @@ static int xmppfs_getattr(const char *filename, struct stat *fstat)
 			
 			time_of_presence = mktime(tmp_time);
 			fstat->st_atime = fstat->st_mtime = fstat->st_ctime = (unsigned long) time_of_presence;
+			free(substr);
+			free(tmp_time);
 		}
 		tmp=tmp->next;
 	}
@@ -318,6 +320,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 	pthread_create( &thread1, NULL, xmpp_communication, args);
 	pthread_join( thread1, NULL);
 
+	free(args->conn);
 //	xmpp_disconnect(conn);
 
 	return 1;
@@ -559,6 +562,11 @@ int main(int argc, char *argv[])
 	while(!fs.failed) {
 		sleep(1);
 	}
+
+	free(xmppfs_args.mount); 
+	free(xmppfs_args.jid);
+	free(xmppfs_args.pass);
+	free(xmppfs_args.host);
 
 	return 0;
 }
