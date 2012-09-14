@@ -513,7 +513,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-/*	pid_t pid, sid;
+	pid_t pid, sid;
 	pid = fork();
 	if (pid < 0) {
 		exit(EXIT_FAILURE);
@@ -537,7 +537,7 @@ int main(int argc, char *argv[])
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-*/
+
 
 	xmpp_status=0;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);

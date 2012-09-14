@@ -14,9 +14,12 @@ for i in `seq -w 0 99`;
 do
 	for j in ${i}*;
 	do
-		echo "Starting: $j" >> $TEST_LOG
-		./$j
-		echo "Finished: $j" >> $TEST_LOG
-		echo >> $TEST_LOG
+		if [ -x $j ]; 
+		then
+			echo "Starting: $j" >> $TEST_LOG
+			./$j
+			echo "Finished: $j" >> $TEST_LOG
+			echo >> $TEST_LOG
+		fi
 	done
 done
