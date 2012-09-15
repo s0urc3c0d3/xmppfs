@@ -13,7 +13,7 @@ visit http://c0d3.pl for more info on xmppfs and my other projects. Report a pro
 
 
 License
-Tis software is released under GLPv2 (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html). A copy of GLPv2 is located in LICENSE file
+This software is released under GLPv2 (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html). A copy of GLPv2 is located in LICENSE file
 
 
 How to build

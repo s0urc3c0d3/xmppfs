@@ -253,21 +253,21 @@ static struct fuse_operations xmppfs = {
 pthread_t xmpp_thread;
 pthread_t thread1;
 
-struct xmpp_thread_arg  {
+/*struct xmpp_thread_arg  {
 	struct xmpp_conn_t *conn;
 	struct xmpp_ctx_t *ctx;
-};
+};*/
 
 
 
-void *xmpp_communication(void *args)
+/*void *xmpp_communication(void *args)
 {
-	/*struct xmpp_thread_arg *arg = (struct xmpp_thread_arg *)args;
+*struct xmpp_thread_arg *arg = (struct xmpp_thread_arg *)args;
 	struct xmpp_ctx_t *ctx = arg->ctx;
 	struct xmpp_conn_t *conn = arg->conn;
-*/
+
 	return 0;
-}
+}*/
 
 int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
@@ -312,7 +312,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 		xmpp_stanza_release(pres);
 	}
 
-	struct xmpp_thread_arg *args = (struct xmpp_thread_arg *) malloc(sizeof(struct xmpp_thread_arg));
+	/*struct xmpp_thread_arg *args = (struct xmpp_thread_arg *) malloc(sizeof(struct xmpp_thread_arg));
 	args->ctx=(struct xmpp_ctx_t *)userdata;
 	args->conn=(struct xmpp_conn_t *)malloc(sizeof(xmpp_conn_t));
 	memcpy(args->conn,conn,sizeof(xmpp_conn_t));
@@ -320,7 +320,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 	pthread_create( &thread1, NULL, xmpp_communication, args);
 	pthread_join( thread1, NULL);
 
-	free(args->conn);
+	free(args->conn);*/
 //	xmpp_disconnect(conn);
 
 	return 1;
