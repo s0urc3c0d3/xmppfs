@@ -560,6 +560,7 @@ int main(int argc, char *argv[])
 	while(!fs.failed) {
 		sleep(1);
 	}
+	fuse_destroy(fs.fuse);
 	char *umount=malloc(strlen(xmppfs_args.mount)+8);
 	sprintf(umount,"umount %s",xmppfs_args.mount);
 	system(umount);

@@ -30,6 +30,7 @@ for i in `seq 1 100`; do
 		umount $MNT_POINT2
 		exit 1
 	fi
+	sleep 1
 done
 umount $MNT_POINT1
 umount $MNT_POINT2
