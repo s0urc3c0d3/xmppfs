@@ -15,8 +15,8 @@ MNT_POINT2=/mnt/xmppfs2/
 if ! [ -d $MNT_POINT1 ]; then mkdir $MNT_POINT1; fi
 if ! [ -d $MNT_POINT2 ]; then mkdir $MNT_POINT2; fi
 
-$XMPPFS_PATH -j ${JID1}${RES1} -p $PASS1 -o $HOST1 -m $MNT_POINT1
-$XMPPFS_PATH -j ${JID2}${RES2} -p $PASS2 -o $HOST2 -m $MNT_POINT2
+#$XMPPFS_PATH -j ${JID1}${RES1} -p $PASS1 -o $HOST1 -m $MNT_POINT1
+#$XMPPFS_PATH -j ${JID2}${RES2} -p $PASS2 -o $HOST2 -m $MNT_POINT2
 
 for i in `seq 1 100`; do
 	echo "Send. and recv. message nr $i..."

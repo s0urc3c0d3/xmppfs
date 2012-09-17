@@ -19,8 +19,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include "/root/xmpp_libs/libstrophe-1.0.0/src/common.h"
-//#include "/root/libstrophe/src/common.h"
 
 xmpp_ctx_t *ctx_new;
 xmpp_conn_t *conn_new;
@@ -422,7 +420,7 @@ void *xmpp_thread_main(void *args)
 	xmpp_initialize();
 
 	xmpp_log_t *log;
-	log = xmpp_get_default_logger(XMPP_LEVEL_DEBUG);
+	log = xmpp_get_default_logger(XMPP_LEVEL_WARN);
 
 	xmpp_ctx_t *ctx;
 	ctx = xmpp_ctx_new(NULL, log);
@@ -494,20 +492,20 @@ int main(int argc, char *argv[])
 				break;
 			
 			case 'j':
-				xmppfs_args.jid = (char *)malloc(strlen(optarg));
+				xmppfs_args.jid = (char *)malloc(strlen(optarg)+1);
 				strcpy(xmppfs_args.jid,optarg);
 				break;
 
 			case 'p':
-				xmppfs_args.pass = (char *)malloc(strlen(optarg));
+				xmppfs_args.pass = (char *)malloc(strlen(optarg)+1);
 				strcpy(xmppfs_args.pass,optarg);
 				break;
 			case 'm':
-				xmppfs_args.mount = (char *)malloc(strlen(optarg));
+				xmppfs_args.mount = (char *)malloc(strlen(optarg)+1);
 				strcpy(xmppfs_args.mount,optarg);
 				break;
 			case 'o':
-				xmppfs_args.host = (char *)malloc(strlen(optarg));
+				xmppfs_args.host = (char *)malloc(strlen(optarg)+1);
 				strncpy(xmppfs_args.host,optarg,strlen(optarg));
 				break;
 			case 'r':
@@ -516,7 +514,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	pid_t pid, sid;
+/*	pid_t pid, sid;
 	pid = fork();
 	if (pid < 0) {
 		exit(EXIT_FAILURE);
@@ -540,7 +538,7 @@ int main(int argc, char *argv[])
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-
+*/
 
 	xmpp_status=0;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
@@ -562,7 +560,11 @@ int main(int argc, char *argv[])
 	while(!fs.failed) {
 		sleep(1);
 	}
+	char *umount=malloc(strlen(xmppfs_args.mount)+8);
+	sprintf(umount,"umount %s",xmppfs_args.mount);
+	system(umount);
 
+	free(umount);
 	free(xmppfs_args.mount); 
 	free(xmppfs_args.jid);
 	free(xmppfs_args.pass);
