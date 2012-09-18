@@ -213,6 +213,8 @@ static int xmppfs_write(const char *filename, const char *buf, size_t size, off_
 			xmpp_stanza_add_child(reply, body);
 
 			xmpp_send(conn_new, reply);
+			xmpp_stanza_release(text);
+			xmpp_stanza_release(body);
 			xmpp_stanza_release(reply);
 			free(replytext);
 			free(jid);
@@ -278,7 +280,7 @@ int xmpp_connection_handle_reply(xmpp_conn_t * const conn, xmpp_stanza_t * const
 
 	type = xmpp_stanza_get_type(stanza);
 	if (strcmp(type,"error") == 0)
-		fprintf(stderr, "ERROR: query failed\n");
+		{}//fprintf(stderr, "ERROR: query failed\n");
 	else {
 		query = xmpp_stanza_get_child_by_name(stanza, "query");
 //		zaczynamy pobieranie rostera
@@ -351,9 +353,10 @@ int presence_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, voi
 
 int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void * const userdata)
 {
-	char *from, *msgt=(char *)malloc(1024);
+	char *from, *msgt;
 	xmpp_stanza_t *msg;
 	int mlen;
+	xmpp_ctx_t *ctx = (xmpp_ctx_t *)userdata;
 	struct _xmpp_contact_list *tmp=&xmpp_contact_list;
 
 	if(!xmpp_stanza_get_child_by_name(stanza, "body")) return 1;
@@ -366,16 +369,18 @@ int message_handler(xmpp_conn_t * const conn, xmpp_stanza_t * const stanza, void
 	{
 		if (strncmp(from,tmp->jid,strlen(tmp->jid)) == 0)
 		{
+			//msgt=(char *)malloc(1024);
 			//zwiekszanie bufora
 			msgt=xmpp_stanza_get_text(msg);
 			mlen = strlen(msgt);
 			memset(tmp->rbuf,0,READBUF_LEN);
 			strncpy(tmp->rbuf,msgt,mlen);
 			tmp->rbuflen=mlen;
+			xmpp_free(ctx,msgt);
+			//free(msgt);
 		}
 		tmp=tmp->next;
 	}
-	free(msgt);
 	return 1;
 }
 
@@ -385,7 +390,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 	xmpp_stanza_t *iq, *query;
 
 	if (status == XMPP_CONN_CONNECT) {
-		fprintf(stderr, "DEBUG: connected\n");
+		//fprintf(stderr, "DEBUG: connected\n");
 
 		iq = xmpp_stanza_new(ctx);
 
@@ -410,7 +415,7 @@ void xmpp_connection_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t s
 
 		xmpp_stanza_release(iq);
 	} else {
-		fprintf(stderr, "DEBUG: disconnected\n");
+		//fprintf(stderr, "DEBUG: disconnected\n");
 		xmpp_stop(ctx);
 	}
 }
@@ -456,6 +461,7 @@ void *fuse_thread(void *arg)
 		perror("fuse_loop");
 	}
 	fs.failed = 1;
+	fuse_destroy(fs.fuse);
 	return NULL;
 }
 
@@ -514,7 +520,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-/*	pid_t pid, sid;
+	pid_t pid, sid;
 	pid = fork();
 	if (pid < 0) {
 		exit(EXIT_FAILURE);
@@ -538,7 +544,7 @@ int main(int argc, char *argv[])
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-*/
+
 
 	xmpp_status=0;
 	pthread_create(&xmpp_thread,NULL,xmpp_thread_main,NULL);
@@ -560,7 +566,6 @@ int main(int argc, char *argv[])
 	while(!fs.failed) {
 		sleep(1);
 	}
-	fuse_destroy(fs.fuse);
 	char *umount=malloc(strlen(xmppfs_args.mount)+8);
 	sprintf(umount,"umount %s",xmppfs_args.mount);
 	system(umount);
@@ -570,6 +575,11 @@ int main(int argc, char *argv[])
 	free(xmppfs_args.jid);
 	free(xmppfs_args.pass);
 	free(xmppfs_args.host);
+
+	xmpp_disconnect(conn_new);
+	void *status;
+	pthread_join(xmpp_thread,&status);
+	pthread_join(fs.pid, &status);
 
 	return 0;
 }
