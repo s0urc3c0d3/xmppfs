@@ -6,9 +6,9 @@ PASS1=tester
 HOST1=example.jabber.com
 MNT_POINT1=/mnt/xmppfs1/
 
-JID2=tester3@example.jabber.com
+JID2=tester2@example.jabber.com
 RES2=/psi2
-PASS2=tester3
+PASS2=tester2
 HOST2=example.jabber.com
 MNT_POINT2=/mnt/xmppfs2/
 
